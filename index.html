@@ -3,165 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3950 | LIVE Pit Dashboard</title>
+    <title>3950 | LIVE Rankings</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         :root {
-            --bg: #050505; --card: #111113; --text: #ffffff; --text-muted: #71717a;
-            --accent: #3b82f6; --green: #10b981; --yellow: #f59e0b; --red: #ef4444;
-            --border: #27272a;
+            --bg: #050505; --card: #111113; --text: #ffffff; --text-muted: #a1a1aa;
+            --accent: #3b82f6; --border: #27272a;
         }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; overflow: hidden; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        #clock { font-size: 2.5rem; font-weight: 900; color: var(--accent); }
-        .grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; height: 80vh; }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; }
-        .card h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin: 0 0 15px 0; }
+        body { 
+            font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); 
+            margin: 0; padding: 15px; overflow: hidden; height: 100vh;
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; }
+        #clock { font-size: 2rem; font-weight: 900; color: var(--accent); }
         
-        .list-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 10px; border-bottom: 1px solid var(--border); }
-        .highlight { background: rgba(59, 130, 246, 0.2) !important; border-radius: 8px; }
+        .rank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; height: calc(100vh - 80px); }
+        .rank-column { background: var(--card); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
         
-        .status-badge { padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 900; text-transform: uppercase; }
-        .status-now { background: var(--red); color: white; animation: pulse 1s infinite; }
-        .status-soon { background: var(--yellow); color: black; }
-        .status-wait { background: #27272a; color: var(--text-muted); }
-
-        .team-line { font-size: 0.85rem; font-weight: 600; margin-top: 5px; }
-        .red-t { color: #fca5a5; } .blue-t { color: #93c5fd; }
+        .table-header { 
+            display: grid; grid-template-columns: 35px 55px 45px 55px 65px 1fr; 
+            padding: 8px 10px; background: #1c1c1f; font-size: 0.65rem; font-weight: 900; color: var(--text-muted); text-transform: uppercase;
+        }
+        .rank-row { 
+            display: grid; grid-template-columns: 35px 55px 45px 55px 65px 1fr; 
+            padding: 6px 10px; border-bottom: 1px solid #1c1c1f; align-items: center; font-size: 0.85rem; 
+        }
+        .rank-row:last-child { border-bottom: none; }
         
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .highlight { background: rgba(59, 130, 246, 0.3) !important; color: #fff; box-shadow: inset 4px 0 0 var(--accent); }
+        .num-bold { font-weight: 800; }
+        .avg-col { color: var(--accent); font-weight: 700; }
+        .sync-indicator { font-size: 0.7rem; color: var(--text-muted); }
+        
+        span { white-space: nowrap; overflow: hidden; }
+        .right { text-align: right; padding-right: 5px; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <div>
-        <h1 style="margin:0; font-size: 1.5rem;">LONG ISLAND REGIONAL</h1>
-        <span id="sync-time" style="color:var(--text-muted); font-size: 0.8rem;">Syncing Nexus...</span>
+        <h1 style="margin:0; font-size: 1.2rem; letter-spacing: 1px;">RANKINGS | LI REGIONAL</h1>
+        <div class="sync-indicator" id="sync-status">Syncing TBA...</div>
     </div>
-    <div id="clock">00:00:00 PM</div>
+    <div id="clock">00:00:00</div>
 </div>
 
-<div class="grid">
-    <div class="card">
-        <h2>Live Schedule</h2>
-        <div id="schedule-list" style="overflow-y: auto;"></div>
-    </div>
-    <div class="card">
-        <h2>Rankings (Top 15 - Avg RP)</h2>
-        <div id="ranking-list"></div>
-    </div>
+<div class="rank-grid">
+    <div class="rank-column" id="col-1"></div>
+    <div class="rank-column" id="col-2"></div>
 </div>
 
 <script>
     const TEAM = '3950';
     const EVENT = '2026nyli2';
     const TBA_KEY = 'aarQMLYkn3tn4LX2UPkoBcMEkNnwyN4vglGipehna9VjUWdWcvnmYGSE2bAM6HdL';
-    const NEXUS_KEY = 'wz4xuiQTrG49lx3Jr69rvEkIv9A';
 
-    async function update() {
+    async function updateRankings() {
         try {
-            const [nRes, mRes, rRes] = await Promise.all([
-                fetch(`https://frc.nexus/api/v1/event/${EVENT}`, { headers: {'Nexus-Api-Key': NEXUS_KEY} }),
-                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/matches/simple`, { headers: {'X-TBA-Auth-Key': TBA_KEY} }),
-                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/rankings`, { headers: {'X-TBA-Auth-Key': TBA_KEY} })
-            ]);
+            const res = await fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/rankings`, {
+                headers: { 'X-TBA-Auth-Key': TBA_KEY }
+            });
+            const data = await res.json();
+            if (!data.rankings) return;
 
-            const nData = await nRes.json();
-            const tbaMatches = await mRes.json();
-            const rData = await rRes.json();
+            const half = Math.ceil(data.rankings.length / 2);
+            renderColumn('col-1', data.rankings.slice(0, half));
+            renderColumn('col-2', data.rankings.slice(half));
 
-            // Find current match index to purge all previous data
-            const currentIdx = nData.matches.findIndex(m => m.status === 'on field' || m.status === 'playing');
-            const liveMatches = nData.matches.slice(currentIdx >= 0 ? currentIdx : 0)
-                                .filter(m => !m.label.toLowerCase().includes('practice'));
-
-            renderSchedule(liveMatches, tbaMatches);
-            renderRankings(rData.rankings);
-            document.getElementById('sync-time').innerText = `Nexus Last Sync: ${new Date().toLocaleTimeString()}`;
+            document.getElementById('sync-status').innerText = `LIVE SYNC: ${new Date().toLocaleTimeString()}`;
         } catch (e) { console.error(e); }
     }
 
-    function getStatusInfo(match, index) {
-        if (match.status === 'on field' || match.status === 'playing') return { text: 'ON FIELD', class: 'status-now' };
-        if (index === 1) return { text: 'ON DECK', class: 'status-now' };
-
-        const now = new Date();
-        const est = new Date(match.estimatedTime);
-        const diff = Math.floor((est - now) / 60000);
-
-        if (diff <= 5) return { text: 'QUEUING NOW', class: 'status-now' };
-        if (diff <= 15) return { text: `QUEUE IN ${diff}M`, class: 'status-soon' };
-        return { text: `T-${diff}M`, class: 'status-wait' };
-    }
-
-    function renderSchedule(matches, tbaMatches) {
-        const next3 = matches.slice(0, 3);
-        const remaining = matches.filter(m => JSON.stringify(m).includes(TEAM) && !next3.some(n => n.label === m.label));
-        
-        let html = '<div style="color:var(--accent); font-size:0.7rem; font-weight:900; margin-bottom:10px;">UP NEXT</div>';
-        
-        next3.forEach((m, i) => {
-            const status = getStatusInfo(m, i);
-            html += generateRow(m, tbaMatches, status, true);
-        });
-
-        if (remaining.length > 0) {
-            html += '<div style="color:var(--accent); font-size:0.7rem; font-weight:900; margin:20px 0 10px 0;">OUR UPCOMING MATCHES</div>';
-            remaining.forEach(m => {
-                const status = getStatusInfo(m, -1);
-                html += generateRow(m, tbaMatches, status, false);
-            });
-        }
-        document.getElementById('schedule-list').innerHTML = html;
-    }
-
-    function generateRow(m, tbaMatches, status, isNext3) {
-        const isUs = JSON.stringify(m).includes(TEAM);
-        const labelParts = m.label.split(' ');
-        const tbaKey = (labelParts[0].toLowerCase().startsWith('qual') ? 'qm' : 'sf') + labelParts[1];
-        const tbaM = tbaMatches.find(tm => tm.comp_level + tm.match_number === tbaKey);
-        
-        const teams = tbaM ? `
-            <div class="team-line">
-                <span class="red-t">${tbaM.alliances.red.team_keys.map(k=>k.replace('frc','')).join(' ')}</span>
-                <span style="color:var(--text-muted)">vs</span>
-                <span class="blue-t">${tbaM.alliances.blue.team_keys.map(k=>k.replace('frc','')).join(' ')}</span>
-            </div>` : '';
-
-        return `
-            <div class="list-row ${isUs && isNext3 ? 'highlight' : ''}">
-                <div>
-                    <div style="font-weight:900; font-size:1.1rem;">${m.label}</div>
-                    ${teams}
-                </div>
-                <div class="status-badge ${status.class}">${status.text}</div>
+    function renderColumn(id, ranks) {
+        let html = `
+            <div class="table-header">
+                <span>#</span><span>TEAM</span><span>RP</span><span>AVG</span><span>SCORE</span><span class="right">W-L-T</span>
             </div>`;
-    }
 
-    function renderRankings(ranks) {
-        let html = `<div style="display:flex; justify-content:space-between; padding:0 10px 10px 10px; font-size:0.7rem; font-weight:900; color:var(--text-muted); border-bottom:1px solid var(--border);">
-            <div style="width:20%">RANK</div><div style="width:40%">TEAM</div><div style="width:40%; text-align:right;">AVG RP</div>
-        </div>`;
-        
-        ranks.slice(0, 15).forEach(r => {
-            const avgRP = (r.extra_stats[0] / r.matches_played).toFixed(2);
+        ranks.forEach(r => {
+            const isUs = r.team_key === `frc${TEAM}` ? 'highlight' : '';
+            const avgRP = (r.extra_stats[0] / Math.max(1, r.matches_played)).toFixed(2);
+            // sort_orders[1] is usually Average Match Score in recent FRC seasons
+            const avgScore = r.sort_orders[1] ? r.sort_orders[1].toFixed(1) : '0.0';
+            const record = `${r.record.wins}-${r.record.losses}-${r.record.ties}`;
+
             html += `
-                <div class="list-row ${r.team_key === 'frc'+TEAM ? 'highlight' : ''}" style="padding:10px;">
-                    <div style="width:20%; font-weight:900;">${r.rank}</div>
-                    <div style="width:40%; font-weight:900;">${r.team_key.substring(3)}</div>
-                    <div style="width:40%; text-align:right; font-weight:900; color:var(--accent);">${avgRP}</div>
+                <div class="rank-row ${isUs}">
+                    <span class="num-bold">${r.rank}</span>
+                    <span class="num-bold">${r.team_key.substring(3)}</span>
+                    <span>${r.extra_stats[0]}</span>
+                    <span class="avg-col">${avgRP}</span>
+                    <span style="color:#fbbf24">${avgScore}</span>
+                    <span class="right" style="color:var(--text-muted); font-size:0.75rem;">${record}</span>
                 </div>`;
         });
-        document.getElementById('ranking-list').innerHTML = html;
+        document.getElementById(id).innerHTML = html;
     }
 
     setInterval(() => {
-        document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour12: false});
     }, 1000);
 
-    update();
-    setInterval(update, 15000);
+    // Initial load + 5-second interval
+    updateRankings();
+    setInterval(updateRankings, 5000);
 </script>
 </body>
 </html>
