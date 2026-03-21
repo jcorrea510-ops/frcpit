@@ -28,34 +28,30 @@
             margin: 0; padding: 25px; 
         }
 
-        /* Header */
         .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
         .header h1 { margin: 0; font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; }
         #clock { font-variant-numeric: tabular-nums; font-size: 2.5rem; font-weight: 800; color: var(--accent); }
         .sync-status { font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; }
 
-        /* Grid Layout */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-        .card h2 { margin-top: 0; font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .card h2 { margin-top: 0; font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; }
 
-        /* Lists & Tables */
         .list-row { display: flex; justify-content: space-between; padding: 12px 10px; border-bottom: 1px solid var(--border); align-items: center; }
         .list-row:last-child { border-bottom: none; }
         
-        /* Highlight Fix - No negative margins that break alignment */
-        .highlight { background: rgba(59, 130, 246, 0.15); border-radius: 6px; }
+        .highlight { background: rgba(59, 130, 246, 0.15); border-radius: 6px; box-sizing: border-box; }
+
+        .section-label { font-size: 0.7rem; font-weight: 800; color: var(--accent); background: rgba(59, 130, 246, 0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 10px; }
 
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; }
         .badge-live { background: rgba(16, 185, 129, 0.2); color: var(--green); animation: pulse 2s infinite; }
         .badge-default { background: rgba(255,255,255,0.1); color: var(--text-muted); }
 
-        /* Match Teams Display */
-        .match-teams { display: flex; gap: 10px; font-size: 0.85rem; font-weight: 600; }
+        .match-teams { display: flex; gap: 10px; font-size: 0.85rem; font-weight: 600; margin-top: 2px; }
         .team-r { color: var(--red-text); }
         .team-b { color: var(--blue-text); }
 
-        /* Active Match / Field Status */
         .field-status-header { display: flex; justify-content: space-between; align-items: center; background: #21262d; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
         .score-box { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
         .alliance-score { padding: 15px; border-radius: 12px; width: 40%; text-align: center; font-size: 3.5rem; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -96,8 +92,8 @@
 
 <div class="grid">
     <div class="card">
-        <h2>Upcoming Matches (3950)</h2>
-        <div id="team-schedule"><div class="empty-state">Loading schedule...</div></div>
+        <h2>Schedule</h2>
+        <div id="team-schedule"><div class="empty-state">Loading matches...</div></div>
     </div>
 
     <div class="card">
@@ -118,133 +114,105 @@
 
     async function updateDashboard() {
         try {
-            // Fetch All APIs concurrently for speed
             const [nRes, rRes, mRes] = await Promise.all([
-                fetch(`https://frc.nexus/api/v1/event/${EVENT_KEY}`, { headers: { 'Nexus-Api-Key': NEXUS_KEY } }).catch(() => null),
-                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT_KEY}/rankings`, { headers: { 'X-TBA-Auth-Key': TBA_KEY } }).catch(() => null),
-                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT_KEY}/matches/simple`, { headers: { 'X-TBA-Auth-Key': TBA_KEY } }).catch(() => null)
+                fetch(`https://frc.nexus/api/v1/event/${EVENT_KEY}`, { headers: { 'Nexus-Api-Key': NEXUS_KEY } }),
+                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT_KEY}/rankings`, { headers: { 'X-TBA-Auth-Key': TBA_KEY } }),
+                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT_KEY}/matches/simple`, { headers: { 'X-TBA-Auth-Key': TBA_KEY } })
             ]);
 
-            const nData = nRes && nRes.ok ? await nRes.json() : null;
-            const rData = rRes && rRes.ok ? await rRes.json() : null;
-            const tbaMatches = mRes && mRes.ok ? await mRes.json() : [];
+            const nData = await nRes.json();
+            const rData = await rRes.json();
+            const tbaMatches = await mRes.json();
 
-            if (nData) {
-                document.getElementById('nexus-status').innerText = `Data Synced: ${new Date(nData.dataAsOfTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
-            }
+            document.getElementById('nexus-status').innerText = `Data Synced: ${new Date(nData.dataAsOfTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
 
-            // 1. Render Rankings
             if (rData && rData.rankings) renderRankings(rData.rankings);
-
-            // 2. Process Matches (Combine Nexus timing/status with TBA teams/scores)
             if (nData && nData.matches) {
-                renderOurSchedule(nData.matches, tbaMatches);
+                renderSplitSchedule(nData.matches, tbaMatches);
                 renderFieldStatus(nData, tbaMatches);
             }
 
-        } catch (err) {
-            console.error("Dashboard update failed:", err);
-        }
+        } catch (err) { console.error(err); }
     }
 
-    // --- RENDER FUNCTIONS ---
-
     function getTBATeams(tbaMatches, matchLabel) {
-        // Simple mapping: "Qualification 31" -> "qm31"
         const levelMap = { "Qualification": "qm", "Playoff": "sf", "Final": "f" };
         let parts = matchLabel.split(" ");
         if(parts.length < 2) return null;
         let tbaKey = levelMap[parts[0]] + parts[1];
-        
         let tbaMatch = tbaMatches.find(m => m.comp_level + m.match_number === tbaKey);
         if(!tbaMatch) return null;
-
         return {
             red: tbaMatch.alliances.red.team_keys.map(t => t.replace('frc','')).join(', '),
             blue: tbaMatch.alliances.blue.team_keys.map(t => t.replace('frc','')).join(', ')
         };
     }
 
-    function renderOurSchedule(nexusMatches, tbaMatches) {
-        // Filter out played matches, keep only ones with our team
-        const upcoming = nexusMatches.filter(m => 
-            JSON.stringify(m).includes(TEAM_NUM) && 
-            m.status !== 'played' && 
-            m.status !== 'completed'
-        );
-
+    function renderSplitSchedule(nexusMatches, tbaMatches) {
+        const upcoming = nexusMatches.filter(m => m.status !== 'played' && m.status !== 'completed');
         if (upcoming.length === 0) {
             document.getElementById('team-schedule').innerHTML = `<div class="empty-state">No upcoming matches.</div>`;
             return;
         }
-        
-        let html = '';
-        upcoming.forEach(m => {
-            const time = m.estimatedTime ? new Date(m.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "TBD";
-            const statusStr = m.status ? m.status.toUpperCase() : "SCHEDULED";
-            const badgeClass = statusStr === 'QUEUING' || statusStr === 'ON FIELD' ? 'badge badge-live' : 'badge badge-default';
-            
-            // Try to get opponents from TBA
-            const teams = getTBATeams(tbaMatches, m.label || "");
-            const teamHtml = teams ? `<div class="match-teams"><span class="team-r">${teams.red}</span> vs <span class="team-b">${teams.blue}</span></div>` : '';
 
-            html += `
-            <div class="list-row">
-                <div>
-                    <strong style="font-size: 1.1rem; display: block; margin-bottom: 4px;">${m.label || "Match"}</strong>
-                    ${teamHtml}
-                </div>
-                <div style="text-align: right;">
-                    <span style="color: var(--text-muted); display: block; margin-bottom: 4px;">${time}</span>
-                    <span class="${badgeClass}">${statusStr}</span>
-                </div>
-            </div>`;
-        });
+        const nextThree = upcoming.slice(0, 3);
+        const ourUpcoming = upcoming.filter(m => JSON.stringify(m).includes(TEAM_NUM));
+        const ourRemaining = ourUpcoming.filter(m => !nextThree.some(n => n.label === m.label));
+
+        let html = '<div class="section-label">NEXT 3 ON FIELD</div>';
+        nextThree.forEach(m => html += generateMatchRow(m, tbaMatches, true));
+
+        if (ourRemaining.length > 0) {
+            html += '<div class="section-label" style="margin-top:20px;">OUR REMAINING MATCHES</div>';
+            ourRemaining.forEach(m => html += generateMatchRow(m, tbaMatches, false));
+        }
+        
         document.getElementById('team-schedule').innerHTML = html;
     }
 
-    function renderFieldStatus(nData, tbaMatches) {
-        // Find what is currently happening on the field
-        let active = nData.matches.find(m => m.status === 'on field' || m.status === 'playing');
-        if (!active) active = nData.matches.find(m => m.status === 'queuing'); // Fallback to next up
-        
-        if (active) {
-            document.getElementById('active-match-label').innerText = active.label || "Unknown Match";
-            document.getElementById('active-match-status').innerText = active.status ? active.status.toUpperCase() : "LIVE";
-            
-            // Get teams and live score from TBA
-            const levelMap = { "Qualification": "qm", "Playoff": "sf", "Final": "f" };
-            let parts = (active.label || "").split(" ");
-            let tbaKey = parts.length >= 2 ? levelMap[parts[0]] + parts[1] : null;
-            let tbaMatch = tbaMatches.find(m => m.comp_level + m.match_number === tbaKey);
+    function generateMatchRow(m, tbaMatches, checkHighlight) {
+        const isUs = JSON.stringify(m).includes(TEAM_NUM);
+        const highlightClass = (checkHighlight && isUs) ? 'highlight' : (isUs ? '' : '');
+        const time = m.estimatedTime ? new Date(m.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "TBD";
+        const teams = getTBATeams(tbaMatches, m.label || "");
+        const teamHtml = teams ? `<div class="match-teams"><span class="team-r">${teams.red}</span> vs <span class="team-b">${teams.blue}</span></div>` : '';
 
-            if (tbaMatch) {
-                document.getElementById('active-red-teams').innerText = tbaMatch.alliances.red.team_keys.map(t=>t.replace('frc','')).join(', ');
-                document.getElementById('active-blue-teams').innerText = tbaMatch.alliances.blue.team_keys.map(t=>t.replace('frc','')).join(', ');
-                document.getElementById('red-score').innerText = tbaMatch.alliances.red.score > -1 ? tbaMatch.alliances.red.score : 0;
-                document.getElementById('blue-score').innerText = tbaMatch.alliances.blue.score > -1 ? tbaMatch.alliances.blue.score : 0;
-            } else {
-                document.getElementById('active-red-teams').innerText = "Red Alliance";
-                document.getElementById('active-blue-teams').innerText = "Blue Alliance";
+        return `
+        <div class="list-row ${highlightClass}">
+            <div>
+                <strong style="font-size: 1.1rem; display: block;">${m.label || "Match"}</strong>
+                ${teamHtml}
+            </div>
+            <div style="text-align: right;">
+                <span style="color: var(--text-muted); display: block; font-size: 0.9rem;">${time}</span>
+                <span class="badge ${m.status === 'queuing' ? 'badge-live' : 'badge-default'}">${m.status.toUpperCase()}</span>
+            </div>
+        </div>`;
+    }
+
+    function renderFieldStatus(nData, tbaMatches) {
+        let active = nData.matches.find(m => m.status === 'on field' || m.status === 'playing') || nData.matches.find(m => m.status === 'queuing');
+        if (active) {
+            document.getElementById('active-match-label').innerText = active.label;
+            document.getElementById('active-match-status').innerText = active.status.toUpperCase();
+            const teams = getTBATeams(tbaMatches, active.label);
+            if (teams) {
+                document.getElementById('active-red-teams').innerText = teams.red;
+                document.getElementById('active-blue-teams').innerText = teams.blue;
+                let tbaMatch = tbaMatches.find(m => m.comp_level + m.match_number === (active.label.toLowerCase().includes('qual') ? 'qm' : 'sf') + active.label.split(' ')[1]);
+                document.getElementById('red-score').innerText = tbaMatch?.alliances.red.score > -1 ? tbaMatch.alliances.red.score : 0;
+                document.getElementById('blue-score').innerText = tbaMatch?.alliances.blue.score > -1 ? tbaMatch.alliances.blue.score : 0;
             }
-        } else {
-            document.getElementById('active-match-label').innerText = nData.nowQueuing ? `Queuing: ${nData.nowQueuing}` : "FIELD IS ON BREAK";
-            document.getElementById('active-match-status').innerText = "STANDBY";
-            document.getElementById('active-red-teams').innerText = "---";
-            document.getElementById('active-blue-teams').innerText = "---";
         }
     }
 
     function renderRankings(ranks) {
-        let html = `
-        <div style="display:flex; justify-content:space-between; color:var(--text-muted); font-size:0.8rem; font-weight:bold; padding: 0 10px 8px 10px; border-bottom:1px solid var(--border);">
+        let html = `<div style="display:flex; justify-content:space-between; color:var(--text-muted); font-size:0.8rem; font-weight:bold; padding: 0 10px 8px 10px; border-bottom:1px solid var(--border);">
             <div style="width:10%;">#</div><div style="width:30%;">TEAM</div><div style="width:30%; text-align:center;">RP</div><div style="width:30%; text-align:right;">W-L-T</div>
         </div>`;
-        
         ranks.slice(0, 15).forEach(r => {
             const isUs = r.team_key === `frc${TEAM_NUM}` ? 'highlight' : '';
-            html += `
-            <div class="list-row ${isUs}">
+            html += `<div class="list-row ${isUs}">
                 <div style="width:10%; font-weight:bold;">${r.rank}</div>
                 <div style="width:30%; font-weight:bold; color:var(--text);">${r.team_key.substring(3)}</div>
                 <div style="width:30%; text-align:center;">${r.extra_stats[0]}</div>
@@ -254,9 +222,8 @@
         document.getElementById('rankings').innerHTML = html;
     }
 
-    // Initialize and loop every 20 seconds for rapid updates
     updateDashboard();
-    setInterval(updateDashboard, 20000); 
+    setInterval(updateDashboard, 15000); 
 </script>
 </body>
 </html>
