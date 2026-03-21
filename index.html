@@ -25,42 +25,47 @@
 
         body { 
             font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); 
-            margin: 0; padding: 25px; 
+            margin: 0; padding: 25px; overflow-x: hidden;
         }
 
+        /* Header */
         .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
         .header h1 { margin: 0; font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; }
         #clock { font-variant-numeric: tabular-nums; font-size: 2.5rem; font-weight: 800; color: var(--accent); }
         .sync-status { font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; }
 
+        /* Grid */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-        .card h2 { margin-top: 0; font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; }
+        .card h2 { margin-top: 0; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; }
 
-        .list-row { display: flex; justify-content: space-between; padding: 12px 10px; border-bottom: 1px solid var(--border); align-items: center; }
+        /* List Items - Clean formatting that won't break on highlight */
+        .list-row { display: flex; justify-content: space-between; padding: 12px 10px; border-bottom: 1px solid var(--border); align-items: center; transition: background 0.2s; }
         .list-row:last-child { border-bottom: none; }
         
-        .highlight { background: rgba(59, 130, 246, 0.15); border-radius: 6px; box-sizing: border-box; }
+        /* Highlight Fix: Background only, no margin/padding shifts */
+        .highlight { background: rgba(59, 130, 246, 0.2) !important; border-radius: 6px; }
 
-        .section-label { font-size: 0.7rem; font-weight: 800; color: var(--accent); background: rgba(59, 130, 246, 0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 10px; }
+        .section-label { font-size: 0.7rem; font-weight: 800; color: var(--accent); background: rgba(59, 130, 246, 0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 15px 0 5px 0; }
+        .section-label:first-child { margin-top: 0; }
 
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; }
         .badge-live { background: rgba(16, 185, 129, 0.2); color: var(--green); animation: pulse 2s infinite; }
-        .badge-default { background: rgba(255,255,255,0.1); color: var(--text-muted); }
+        .badge-default { background: rgba(255,255,255,0.05); color: var(--text-muted); }
 
-        .match-teams { display: flex; gap: 10px; font-size: 0.85rem; font-weight: 600; margin-top: 2px; }
+        .match-teams { display: flex; gap: 8px; font-size: 0.8rem; font-weight: 600; margin-top: 4px; }
         .team-r { color: var(--red-text); }
         .team-b { color: var(--blue-text); }
 
-        .field-status-header { display: flex; justify-content: space-between; align-items: center; background: #21262d; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .score-box { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
-        .alliance-score { padding: 15px; border-radius: 12px; width: 40%; text-align: center; font-size: 3.5rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+        /* Field Status Styles */
+        .active-match-card { background: #111113; border: 2px solid var(--border); margin-bottom: 20px; }
+        .status-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .score-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+        .alliance-score { flex: 1; padding: 20px; border-radius: 12px; text-align: center; font-size: 4rem; font-weight: 900; }
         .red { background: var(--red-bg); border: 2px solid var(--red-border); color: var(--red-text); }
         .blue { background: var(--blue-bg); border: 2px solid var(--blue-border); color: var(--blue-text); }
-        
-        .empty-state { color: var(--text-muted); text-align: center; padding: 20px 0; font-style: italic; }
 
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -68,162 +73,168 @@
 <div class="header">
     <div>
         <h1>Long Island Regional</h1>
-        <div class="sync-status" id="nexus-status">Waiting for sync...</div>
+        <div class="sync-status" id="nexus-status">Syncing...</div>
     </div>
-    <div id="clock">00:00:00 AM</div>
+    <div id="clock">00:00:00 PM</div>
 </div>
 
-<div class="card" style="margin-bottom: 20px;">
-    <h2>FIELD STATUS & ACTIVE MATCH</h2>
-    <div class="field-status-header">
-        <div style="font-size: 1.2rem; font-weight: 800;" id="active-match-label">Fetching Field Status...</div>
-        <div class="badge badge-live" id="active-match-status">LIVE</div>
+<div class="card active-match-card">
+    <div class="status-top">
+        <h2 id="field-label" style="border:none; margin:0;">Field Status: Standing By</h2>
+        <div class="badge badge-default" id="field-badge">STANDBY</div>
     </div>
-    <div style="text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 1.1rem;" id="active-teams">
-        <span class="team-r" id="active-red-teams">---</span> 
-        <span style="color: var(--text-muted); margin: 0 10px;">VS</span> 
-        <span class="team-b" id="active-blue-teams">---</span>
+    <div style="text-align: center; font-weight: 700; margin-bottom: 15px; font-size: 1.2rem;">
+        <span class="team-r" id="active-red">---</span> 
+        <span style="color: var(--text-muted); margin: 0 15px;">VS</span> 
+        <span class="team-b" id="active-blue">---</span>
     </div>
-    <div class="score-box">
-        <div class="alliance-score red" id="red-score">0</div>
-        <div class="alliance-score blue" id="blue-score">0</div>
+    <div class="score-row">
+        <div class="alliance-score red" id="score-red">0</div>
+        <div class="alliance-score blue" id="score-blue">0</div>
     </div>
 </div>
 
 <div class="grid">
     <div class="card">
-        <h2>Schedule</h2>
-        <div id="team-schedule"><div class="empty-state">Loading matches...</div></div>
+        <h2>Match Schedule</h2>
+        <div id="match-container"><div style="color:var(--text-muted); padding:20px;">Loading schedule...</div></div>
     </div>
 
     <div class="card">
         <h2>Rankings (Top 15)</h2>
-        <div id="rankings"><div class="empty-state">Loading rankings...</div></div>
+        <div id="rankings-container"></div>
     </div>
 </div>
 
 <script>
+    const TEAM = '3950';
+    const EVENT = '2026nyli2';
     const TBA_KEY = 'aarQMLYkn3tn4LX2UPkoBcMEkNnwyN4vglGipehna9VjUWdWcvnmYGSE2bAM6HdL';
     const NEXUS_KEY = 'wz4xuiQTrG49lx3Jr69rvEkIv9A';
-    const EVENT_KEY = '2026nyli2'; 
-    const TEAM_NUM = '3950';
 
     setInterval(() => {
         document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', { hour12: true });
     }, 1000);
 
-    async function updateDashboard() {
+    async function update() {
         try {
-            const [nRes, rRes, mRes] = await Promise.all([
-                fetch(`https://frc.nexus/api/v1/event/${EVENT_KEY}`, { headers: { 'Nexus-Api-Key': NEXUS_KEY } }),
-                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT_KEY}/rankings`, { headers: { 'X-TBA-Auth-Key': TBA_KEY } }),
-                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT_KEY}/matches/simple`, { headers: { 'X-TBA-Auth-Key': TBA_KEY } })
+            const [nRes, mRes, rRes] = await Promise.all([
+                fetch(`https://frc.nexus/api/v1/event/${EVENT}`, { headers: {'Nexus-Api-Key': NEXUS_KEY} }),
+                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/matches/simple`, { headers: {'X-TBA-Auth-Key': TBA_KEY} }),
+                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/rankings`, { headers: {'X-TBA-Auth-Key': TBA_KEY} })
             ]);
 
             const nData = await nRes.json();
-            const rData = await rRes.json();
             const tbaMatches = await mRes.json();
+            const rData = await rRes.json();
 
-            document.getElementById('nexus-status').innerText = `Data Synced: ${new Date(nData.dataAsOfTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+            document.getElementById('nexus-status').innerText = `Synced: ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
 
-            if (rData && rData.rankings) renderRankings(rData.rankings);
-            if (nData && nData.matches) {
-                renderSplitSchedule(nData.matches, tbaMatches);
-                renderFieldStatus(nData, tbaMatches);
-            }
+            // 1. FILTER FOR ACTUAL UPCOMING MATCHES
+            // Exclude "Practice" matches and anything already "Played"
+            const filtered = nData.matches.filter(m => {
+                const label = (m.label || "").toLowerCase();
+                const isPractice = label.includes("practice");
+                const isDone = m.status === "played" || m.status === "completed";
+                return !isPractice && !isDone;
+            });
 
-        } catch (err) { console.error(err); }
+            renderSchedule(filtered, tbaMatches);
+            renderField(nData.matches, tbaMatches);
+            renderRankings(rData.rankings);
+
+        } catch (e) { console.error("Update Error:", e); }
     }
 
-    function getTBATeams(tbaMatches, matchLabel) {
-        const levelMap = { "Qualification": "qm", "Playoff": "sf", "Final": "f" };
-        let parts = matchLabel.split(" ");
-        if(parts.length < 2) return null;
-        let tbaKey = levelMap[parts[0]] + parts[1];
-        let tbaMatch = tbaMatches.find(m => m.comp_level + m.match_number === tbaKey);
-        if(!tbaMatch) return null;
-        return {
-            red: tbaMatch.alliances.red.team_keys.map(t => t.replace('frc','')).join(', '),
-            blue: tbaMatch.alliances.blue.team_keys.map(t => t.replace('frc','')).join(', ')
-        };
-    }
-
-    function renderSplitSchedule(nexusMatches, tbaMatches) {
-        const upcoming = nexusMatches.filter(m => m.status !== 'played' && m.status !== 'completed');
-        if (upcoming.length === 0) {
-            document.getElementById('team-schedule').innerHTML = `<div class="empty-state">No upcoming matches.</div>`;
+    function renderSchedule(upcoming, tbaMatches) {
+        if (!upcoming.length) {
+            document.getElementById('match-container').innerHTML = `<div style="padding:20px; color:var(--text-muted)">All matches finished!</div>`;
             return;
         }
 
-        const nextThree = upcoming.slice(0, 3);
-        const ourUpcoming = upcoming.filter(m => JSON.stringify(m).includes(TEAM_NUM));
-        const ourRemaining = ourUpcoming.filter(m => !nextThree.some(n => n.label === m.label));
+        const next3 = upcoming.slice(0, 3);
+        const ourMatches = upcoming.filter(m => JSON.stringify(m).includes(TEAM) && !next3.some(n => n.label === m.label));
 
         let html = '<div class="section-label">NEXT 3 ON FIELD</div>';
-        nextThree.forEach(m => html += generateMatchRow(m, tbaMatches, true));
+        next3.forEach(m => html += generateRow(m, tbaMatches, true));
 
-        if (ourRemaining.length > 0) {
-            html += '<div class="section-label" style="margin-top:20px;">OUR REMAINING MATCHES</div>';
-            ourRemaining.forEach(m => html += generateMatchRow(m, tbaMatches, false));
+        if (ourMatches.length > 0) {
+            html += '<div class="section-label">OUR REMAINING MATCHES</div>';
+            ourMatches.forEach(m => html += generateRow(m, tbaMatches, false));
         }
-        
-        document.getElementById('team-schedule').innerHTML = html;
+
+        document.getElementById('match-container').innerHTML = html;
     }
 
-    function generateMatchRow(m, tbaMatches, checkHighlight) {
-        const isUs = JSON.stringify(m).includes(TEAM_NUM);
-        const highlightClass = (checkHighlight && isUs) ? 'highlight' : (isUs ? '' : '');
-        const time = m.estimatedTime ? new Date(m.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "TBD";
-        const teams = getTBATeams(tbaMatches, m.label || "");
-        const teamHtml = teams ? `<div class="match-teams"><span class="team-r">${teams.red}</span> vs <span class="team-b">${teams.blue}</span></div>` : '';
+    function generateRow(m, tbaMatches, checkHighlight) {
+        const isUs = JSON.stringify(m).includes(TEAM);
+        const hClass = (checkHighlight && isUs) ? 'highlight' : (isUs && !checkHighlight ? '' : '');
+        const time = m.estimatedTime ? new Date(m.estimatedTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : "TBD";
+        
+        // Get teams from TBA
+        const labelParts = m.label.split(' ');
+        const tbaKey = (labelParts[0].toLowerCase().startsWith('qual') ? 'qm' : 'sf') + labelParts[1];
+        const tbaM = tbaMatches.find(tm => tm.comp_level + tm.match_number === tbaKey);
+        
+        const teamsHtml = tbaM ? `
+            <div class="match-teams">
+                <span class="team-r">${tbaM.alliances.red.team_keys.map(k=>k.replace('frc','')).join(', ')}</span>
+                <span style="color:var(--text-muted)">vs</span>
+                <span class="team-b">${tbaM.alliances.blue.team_keys.map(k=>k.replace('frc','')).join(', ')}</span>
+            </div>` : '';
 
         return `
-        <div class="list-row ${highlightClass}">
-            <div>
-                <strong style="font-size: 1.1rem; display: block;">${m.label || "Match"}</strong>
-                ${teamHtml}
-            </div>
-            <div style="text-align: right;">
-                <span style="color: var(--text-muted); display: block; font-size: 0.9rem;">${time}</span>
-                <span class="badge ${m.status === 'queuing' ? 'badge-live' : 'badge-default'}">${m.status.toUpperCase()}</span>
-            </div>
-        </div>`;
+            <div class="list-row ${hClass}">
+                <div style="flex:1">
+                    <div style="font-weight:800; font-size:1rem;">${m.label}</div>
+                    ${teamsHtml}
+                </div>
+                <div style="text-align:right">
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:4px;">${time}</div>
+                    <div class="badge ${m.status === 'queuing' || m.status === 'on field' ? 'badge-live' : 'badge-default'}">${m.status.toUpperCase()}</div>
+                </div>
+            </div>`;
     }
 
-    function renderFieldStatus(nData, tbaMatches) {
-        let active = nData.matches.find(m => m.status === 'on field' || m.status === 'playing') || nData.matches.find(m => m.status === 'queuing');
+    function renderField(allMatches, tbaMatches) {
+        const active = allMatches.find(m => m.status === 'on field' || m.status === 'playing') || allMatches.find(m => m.status === 'queuing');
         if (active) {
-            document.getElementById('active-match-label').innerText = active.label;
-            document.getElementById('active-match-status').innerText = active.status.toUpperCase();
-            const teams = getTBATeams(tbaMatches, active.label);
-            if (teams) {
-                document.getElementById('active-red-teams').innerText = teams.red;
-                document.getElementById('active-blue-teams').innerText = teams.blue;
-                let tbaMatch = tbaMatches.find(m => m.comp_level + m.match_number === (active.label.toLowerCase().includes('qual') ? 'qm' : 'sf') + active.label.split(' ')[1]);
-                document.getElementById('red-score').innerText = tbaMatch?.alliances.red.score > -1 ? tbaMatch.alliances.red.score : 0;
-                document.getElementById('blue-score').innerText = tbaMatch?.alliances.blue.score > -1 ? tbaMatch.alliances.blue.score : 0;
+            document.getElementById('field-label').innerText = active.label;
+            const badge = document.getElementById('field-badge');
+            badge.innerText = active.status.toUpperCase();
+            badge.className = `badge ${active.status === 'playing' || active.status === 'on field' ? 'badge-live' : 'badge-default'}`;
+
+            const labelParts = active.label.split(' ');
+            const tbaKey = (labelParts[0].toLowerCase().startsWith('qual') ? 'qm' : 'sf') + labelParts[1];
+            const tbaM = tbaMatches.find(tm => tm.comp_level + tm.match_number === tbaKey);
+
+            if (tbaM) {
+                document.getElementById('active-red').innerText = tbaM.alliances.red.team_keys.map(k=>k.replace('frc','')).join(', ');
+                document.getElementById('active-blue').innerText = tbaM.alliances.blue.team_keys.map(k=>k.replace('frc','')).join(', ');
+                document.getElementById('score-red').innerText = tbaM.alliances.red.score > -1 ? tbaM.alliances.red.score : 0;
+                document.getElementById('score-blue').innerText = tbaM.alliances.blue.score > -1 ? tbaM.alliances.blue.score : 0;
             }
         }
     }
 
     function renderRankings(ranks) {
-        let html = `<div style="display:flex; justify-content:space-between; color:var(--text-muted); font-size:0.8rem; font-weight:bold; padding: 0 10px 8px 10px; border-bottom:1px solid var(--border);">
-            <div style="width:10%;">#</div><div style="width:30%;">TEAM</div><div style="width:30%; text-align:center;">RP</div><div style="width:30%; text-align:right;">W-L-T</div>
+        let html = `<div style="display:flex; justify-content:space-between; color:var(--text-muted); font-size:0.75rem; font-weight:800; padding:10px; border-bottom:1px solid var(--border);">
+            <div style="width:15%">RANK</div><div style="width:35%">TEAM</div><div style="width:25%; text-align:center;">RP</div><div style="width:25%; text-align:right;">W-L-T</div>
         </div>`;
         ranks.slice(0, 15).forEach(r => {
-            const isUs = r.team_key === `frc${TEAM_NUM}` ? 'highlight' : '';
+            const isUs = r.team_key === `frc${TEAM}` ? 'highlight' : '';
             html += `<div class="list-row ${isUs}">
-                <div style="width:10%; font-weight:bold;">${r.rank}</div>
-                <div style="width:30%; font-weight:bold; color:var(--text);">${r.team_key.substring(3)}</div>
-                <div style="width:30%; text-align:center;">${r.extra_stats[0]}</div>
-                <div style="width:30%; text-align:right; font-variant-numeric:tabular-nums;">${r.record.wins}-${r.record.losses}-${r.record.ties}</div>
+                <div style="width:15%; font-weight:800;">${r.rank}</div>
+                <div style="width:35%; font-weight:800; color:var(--text);">${r.team_key.substring(3)}</div>
+                <div style="width:25%; text-align:center;">${r.extra_stats[0]}</div>
+                <div style="width:25%; text-align:right; font-variant-numeric:tabular-nums;">${r.record.wins}-${r.record.losses}-${r.record.ties}</div>
             </div>`;
         });
-        document.getElementById('rankings').innerHTML = html;
+        document.getElementById('rankings-container').innerHTML = html;
     }
 
-    updateDashboard();
-    setInterval(updateDashboard, 15000); 
+    update();
+    setInterval(update, 15000); // 15-second rapid refresh
 </script>
 </body>
 </html>
