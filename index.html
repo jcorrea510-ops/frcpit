@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3950 | FRC Live Dashboard</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --text: #c9d1d9;
+            --accent: #58a6ff;
+            --green: #238636;
+            --red: #da3633;
+            --blue: #1f6feb;
+            --border: #30363d;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; }
+        #clock { font-family: monospace; font-size: 2.5rem; color: var(--accent); }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 15px; overflow-x: auto; }
+        h2 { margin-top: 0; font-size: 1.1rem; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+
+        .status-bar { background: #21262d; padding: 15px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; border-left: 4px solid var(--green); display: flex; justify-content: space-between; }
+        
+        .match-list { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .match-list th { text-align: left; color: #8b949e; padding: 8px; border-bottom: 1px solid var(--border); }
+        .match-list td { padding: 10px 8px; border-bottom: 1px solid #21262d; }
+        
+        .score-box { display: flex; justify-content: space-around; align-items: center; margin-top: 10px; }
+        .alliance-score { padding: 15px; border-radius: 8px; width: 40%; text-align: center; font-size: 2rem; font-weight: bold; }
+        .red { background: rgba(218, 54, 51, 0.2); border: 2px solid var(--red); color: #ff7b72; }
+        .blue { background: rgba(31, 111, 235, 0.2); border: 2px solid var(--blue); color: #79c0ff; }
+        
+        .live-tag { color: var(--green); font-size: 0.75rem; animation: blink 2s infinite; font-weight: bold; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <h1 style="margin:0;">Long Island Regional</h1>
+        <div id="nexus-status" style="font-size: 0.8rem; color: #8b949e;">Waiting for sync...</div>
+    </div>
+    <div id="clock">00:00:00</div>
+</div>
+
+<div class="status-bar">
+    <div>CURRENTLY QUEUING: <span id="now-queuing" style="color: var(--accent);">--</span></div>
+    <div id="current-match-label" style="font-size: 0.8rem; opacity: 0.8;"></div>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>Our Matches (3950)</h2>
+        <div id="team-schedule">Loading matches...</div>
+    </div>
+
+    <div class="card">
+        <h2>Rankings (Top 15)</h2>
+        <div id="rankings">Loading rankings...</div>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <h2 id="live-header">Active Match</h2>
+    <div class="score-box" id="score-container">
+        <div class="alliance-score red" id="red-score">0</div>
+        <div style="font-size: 1.5rem; font-weight: bold;">VS</div>
+        <div class="alliance-score blue" id="blue-score">0</div>
+    </div>
+</div>
+
+<footer style="text-align: center; margin-top: 20px; font-size: 0.7rem; color: #484f58;">
+    Data provided by <a href="https://frc.nexus" style="color: var(--accent);">Nexus</a> and The Blue Alliance.
+</footer>
+
+<script>
+    const TBA_KEY = 'aarQMLYkn3tn4LX2UPkoBcMEkNnwyN4vglGipehna9VjUWdWcvnmYGSE2bAM6HdL';
+    const NEXUS_KEY = 'wz4xuiQTrG49lx3Jr69rvEkIv9A';
+    const EVENT_KEY = '2026nyli2'; // Event code for LI Regional
+    const TEAM_NUM = '3950';
+
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clock').innerText = now.toLocaleTimeString('en-US', { hour12: false });
+    }
+    setInterval(updateClock, 1000);
+
+    async function updateData() {
+        try {
+            // 1. Fetch Nexus (Real-time Queuing & Estimates)
+            const nRes = await fetch(`https://frc.nexus/api/v1/event/${EVENT_KEY}`, {
+                headers: { 'Nexus-Api-Key': NEXUS_KEY }
+            });
+            const nData = await nRes.json();
+            
+            document.getElementById('now-queuing').innerText = nData.nowQueuing || "BREAK";
+            document.getElementById('nexus-status').innerText = `Nexus Last Sync: ${new Date(nData.dataAsOfTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}`;
+
+            // Render Schedule with Nexus Timing
+            renderOurSchedule(nData.matches);
+
+            // 2. Fetch TBA (Rankings & Scores)
+            const tbaRanks = await fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT_KEY}/rankings`, {
+                headers: { 'X-TBA-Auth-Key': TBA_KEY }
+            });
+            const rData = await tbaRanks.json();
+            renderRankings(rData.rankings);
+
+            const tbaMatches = await fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT_KEY}/matches/simple`, {
+                headers: { 'X-TBA-Auth-Key': TBA_KEY }
+            });
+            const mData = await tbaMatches.json();
+            renderLiveScore(mData);
+
+        } catch (err) {
+            console.error("Dashboard update failed", err);
+        }
+    }
+
+    function renderOurSchedule(matches) {
+        let html = '<table class="match-list"><tr><th>Match</th><th>Est. Time</th><th>Status</th></tr>';
+        const teamMatches = matches.filter(m => 
+            m.teams.red.includes(parseInt(TEAM_NUM)) || m.teams.blue.includes(parseInt(TEAM_NUM))
+        );
+
+        teamMatches.forEach(m => {
+            const isQueuing = m.status === 'queuing' ? '<span class="live-tag">QUEUING</span>' : m.status;
+            const time = new Date(m.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            html += `<tr><td><b>${m.label}</b></td><td>${time}</td><td>${isQueuing}</td></tr>`;
+        });
+        document.getElementById('team-schedule').innerHTML = html + '</table>';
+    }
+
+    function renderRankings(ranks) {
+        if (!ranks) return;
+        let html = '<table class="match-list"><tr><th>#</th><th>Team</th><th>RP</th><th>Record</th></tr>';
+        ranks.slice(0, 15).forEach(r => {
+            const isUs = r.team_key === `frc${TEAM_NUM}` ? 'style="background: rgba(88, 166, 255, 0.1);"' : '';
+            html += `<tr ${isUs}><td>${r.rank}</td><td><b>${r.team_key.substring(3)}</b></td><td>${r.extra_stats[0]}</td><td>${r.record.wins}-${r.record.losses}-${r.record.ties}</td></tr>`;
+        });
+        document.getElementById('rankings').innerHTML = html + '</table>';
+    }
+
+    function renderLiveScore(matches) {
+        // Find most recent match with score or currently playing
+        const played = matches.filter(m => m.alliances.red.score !== -1).sort((a,b) => b.time - a.time);
+        if (played.length > 0) {
+            const current = played[0];
+            document.getElementById('live-header').innerText = `Recent: ${current.comp_level.toUpperCase()} ${current.match_number}`;
+            document.getElementById('red-score').innerText = current.alliances.red.score;
+            document.getElementById('blue-score').innerText = current.alliances.blue.score;
+        }
+    }
+
+    // Run every 20 seconds
+    updateData();
+    setInterval(updateData, 20000);
+</script>
+</body>
+</html>
