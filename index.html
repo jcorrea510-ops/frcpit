@@ -3,50 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3950 | LIVE Rankings</title>
+    <title>3950 | ELITE Rankings</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         :root {
-            --bg: #050505; --card: #111113; --text: #ffffff; --text-muted: #a1a1aa;
-            --accent: #3b82f6; --border: #27272a;
+            --bg: #050505; --card: #111113; --text: #ffffff; --text-muted: #71717a;
+            --accent: #3b82f6; --red: #ef4444; --blue: #3b82f6; --border: #27272a;
         }
-        body { 
-            font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); 
-            margin: 0; padding: 15px; overflow: hidden; height: 100vh;
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; overflow: hidden; height: 100vh; }
+        
+        /* Header & Field Tracker */
+        .top-bar { display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        #clock { font-size: 2rem; font-weight: 900; color: var(--accent); text-align: right; }
+        
+        .live-match-card { background: #18181b; border: 1px solid var(--border); border-radius: 8px; padding: 10px 20px; display: flex; justify-content: center; align-items: center; gap: 30px; opacity: 0; transition: opacity 0.3s; }
+        .live-match-card.active { opacity: 1; }
+        .score { font-size: 2.5rem; font-weight: 900; }
+        .match-info { text-align: center; }
+
+        /* Rankings Grid */
+        .rank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; height: calc(100vh - 100px); }
+        .rank-column { background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        
+        /* Fixed Column Alignment */
+        .table-header, .rank-row { 
+            display: grid; 
+            grid-template-columns: 30px 50px 30px 35px 45px 55px 55px; 
+            padding: 8px 10px; align-items: center; font-size: 0.75rem;
         }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; }
-        #clock { font-size: 2rem; font-weight: 900; color: var(--accent); }
+        .table-header { background: #1c1c1f; font-weight: 900; color: var(--text-muted); text-transform: uppercase; }
+        .rank-row { border-bottom: 1px solid #1c1c1f; font-size: 0.85rem; }
         
-        .rank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; height: calc(100vh - 80px); }
-        .rank-column { background: var(--card); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
-        
-        .table-header { 
-            display: grid; grid-template-columns: 35px 55px 45px 55px 65px 1fr; 
-            padding: 8px 10px; background: #1c1c1f; font-size: 0.65rem; font-weight: 900; color: var(--text-muted); text-transform: uppercase;
-        }
-        .rank-row { 
-            display: grid; grid-template-columns: 35px 55px 45px 55px 65px 1fr; 
-            padding: 6px 10px; border-bottom: 1px solid #1c1c1f; align-items: center; font-size: 0.85rem; 
-        }
-        .rank-row:last-child { border-bottom: none; }
-        
-        .highlight { background: rgba(59, 130, 246, 0.3) !important; color: #fff; box-shadow: inset 4px 0 0 var(--accent); }
-        .num-bold { font-weight: 800; }
-        .avg-col { color: var(--accent); font-weight: 700; }
-        .sync-indicator { font-size: 0.7rem; color: var(--text-muted); }
-        
-        span { white-space: nowrap; overflow: hidden; }
-        .right { text-align: right; padding-right: 5px; }
+        .highlight { background: rgba(59, 130, 246, 0.3) !important; box-shadow: inset 4px 0 0 var(--accent); }
+        .num-bold { font-weight: 900; }
+        .avg-col { color: var(--accent); font-weight: 900; }
+        .score-col { color: #fbbf24; }
+        .right { text-align: right; }
     </style>
 </head>
 <body>
 
-<div class="header">
+<div class="top-bar">
     <div>
-        <h1 style="margin:0; font-size: 1.2rem; letter-spacing: 1px;">RANKINGS | LI REGIONAL</h1>
-        <div class="sync-indicator" id="sync-status">Syncing TBA...</div>
+        <h1 style="margin:0; font-size: 1.1rem; letter-spacing: 1px;">LI REGIONAL</h1>
+        <div id="sync-status" style="font-size:0.6rem; color:var(--text-muted)">SYNCING...</div>
     </div>
-    <div id="clock">00:00:00</div>
+
+    <div class="live-match-card" id="field-tracker">
+        <div class="score" style="color:var(--red)" id="red-score">0</div>
+        <div class="match-info">
+            <div id="match-label" style="font-weight:900; font-size:0.8rem; color:var(--text-muted)">MATCH --</div>
+            <div id="match-teams" style="font-size:0.7rem; font-weight:700;">--- vs ---</div>
+        </div>
+        <div class="score" style="color:var(--blue)" id="blue-score">0</div>
+    </div>
+
+    <div id="clock">--:--:-- --</div>
 </div>
 
 <div class="rank-grid">
@@ -58,56 +70,72 @@
     const TEAM = '3950';
     const EVENT = '2026nyli2';
     const TBA_KEY = 'aarQMLYkn3tn4LX2UPkoBcMEkNnwyN4vglGipehna9VjUWdWcvnmYGSE2bAM6HdL';
+    const NEXUS_KEY = 'wz4xuiQTrG49lx3Jr69rvEkIv9A';
 
-    async function updateRankings() {
+    async function update() {
         try {
-            const res = await fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/rankings`, {
-                headers: { 'X-TBA-Auth-Key': TBA_KEY }
-            });
-            const data = await res.json();
-            if (!data.rankings) return;
+            const [rRes, nRes] = await Promise.all([
+                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/rankings`, { headers: { 'X-TBA-Auth-Key': TBA_KEY } }),
+                fetch(`https://frc.nexus/api/v1/event/${EVENT}`, { headers: { 'Nexus-Api-Key': NEXUS_KEY } })
+            ]);
 
-            const half = Math.ceil(data.rankings.length / 2);
-            renderColumn('col-1', data.rankings.slice(0, half));
-            renderColumn('col-2', data.rankings.slice(half));
+            const rData = await rRes.json();
+            const nData = await nRes.json();
 
-            document.getElementById('sync-status').innerText = `LIVE SYNC: ${new Date().toLocaleTimeString()}`;
+            // Render Rankings
+            const half = Math.ceil(rData.rankings.length / 2);
+            renderColumn('col-1', rData.rankings.slice(0, half));
+            renderColumn('col-2', rData.rankings.slice(half));
+
+            // Update Field Tracker (only if active)
+            const active = nData.matches.find(m => m.status === 'playing' || m.status === 'on field');
+            const tracker = document.getElementById('field-tracker');
+            if (active) {
+                tracker.classList.add('active');
+                document.getElementById('match-label').innerText = active.label.toUpperCase();
+                document.getElementById('red-score').innerText = active.redScore || 0;
+                document.getElementById('blue-score').innerText = active.blueScore || 0;
+                document.getElementById('match-teams').innerText = `${active.redTeams.join(' ')} VS ${active.blueTeams.join(' ')}`;
+            } else {
+                tracker.classList.remove('active');
+            }
+
+            document.getElementById('sync-status').innerText = `LIVE: ${new Date().toLocaleTimeString()}`;
         } catch (e) { console.error(e); }
     }
 
     function renderColumn(id, ranks) {
         let html = `
             <div class="table-header">
-                <span>#</span><span>TEAM</span><span>RP</span><span>AVG</span><span>SCORE</span><span class="right">W-L-T</span>
+                <span>#</span><span>TEAM</span><span>MP</span><span>RP</span><span>AVG</span><span>SCORE</span><span class="right">W-L</span>
             </div>`;
 
         ranks.forEach(r => {
             const isUs = r.team_key === `frc${TEAM}` ? 'highlight' : '';
             const avgRP = (r.extra_stats[0] / Math.max(1, r.matches_played)).toFixed(2);
-            // sort_orders[1] is usually Average Match Score in recent FRC seasons
             const avgScore = r.sort_orders[1] ? r.sort_orders[1].toFixed(1) : '0.0';
-            const record = `${r.record.wins}-${r.record.losses}-${r.record.ties}`;
+            const record = `${r.record.wins}-${r.record.losses}`;
 
             html += `
                 <div class="rank-row ${isUs}">
                     <span class="num-bold">${r.rank}</span>
                     <span class="num-bold">${r.team_key.substring(3)}</span>
+                    <span style="color:var(--text-muted)">${r.matches_played}</span>
                     <span>${r.extra_stats[0]}</span>
                     <span class="avg-col">${avgRP}</span>
-                    <span style="color:#fbbf24">${avgScore}</span>
-                    <span class="right" style="color:var(--text-muted); font-size:0.75rem;">${record}</span>
+                    <span class="score-col">${avgScore}</span>
+                    <span class="right num-bold">${record}</span>
                 </div>`;
         });
         document.getElementById(id).innerHTML = html;
     }
 
     setInterval(() => {
-        document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour12: false});
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', { hour12: true });
     }, 1000);
 
-    // Initial load + 5-second interval
-    updateRankings();
-    setInterval(updateRankings, 5000);
+    update();
+    setInterval(update, 5000); // 5-second ultra-sync
 </script>
 </body>
 </html>
