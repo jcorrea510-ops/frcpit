@@ -3,288 +3,238 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3950 | FrcPit Command Center</title>
+  <title>3950 | FRC Command Center</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
 
     :root {
-      --bg: #06080f;
-      --panel: #101522;
-      --panel-2: #161d2e;
+      --bg: #070a12;
+      --panel: #0f1524;
+      --panel-2: #131c31;
+      --line: #27324d;
       --text: #eef3ff;
-      --muted: #9ea8c0;
-      --accent: #5ca7ff;
-      --accent-2: #8b5cf6;
-      --danger: #ef4444;
-      --ok: #22c55e;
-      --line: #25304a;
-      --gold: #fbbf24;
-      --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      --muted: #95a2c2;
+      --accent: #69b1ff;
+      --accent-2: #8f6bff;
+      --gold: #f8c23a;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --glow: 0 10px 32px rgba(0, 0, 0, 0.35);
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: radial-gradient(circle at top right, #151d34, var(--bg) 50%);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       color: var(--text);
+      background: radial-gradient(circle at top right, #1a2442 0%, var(--bg) 46%);
       min-height: 100vh;
     }
 
-    .app {
-      display: grid;
-      grid-template-columns: 72px 1fr;
-      min-height: 100vh;
-      transition: grid-template-columns 180ms ease;
-    }
-
-    .app.sidebar-open { grid-template-columns: 280px 1fr; }
+    .app { display: grid; grid-template-columns: 70px 1fr; min-height: 100vh; transition: grid-template-columns .2s ease; }
+    .app.open { grid-template-columns: 260px 1fr; }
 
     .sidebar {
-      background: rgba(7, 11, 20, 0.95);
       border-right: 1px solid var(--line);
+      background: rgba(10, 15, 28, 0.96);
       padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
       overflow: hidden;
     }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 4px;
-    }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
 
     .burger {
-      border: 1px solid var(--line);
-      background: var(--panel);
-      color: var(--text);
       width: 40px;
       height: 40px;
-      border-radius: 10px;
+      border-radius: 11px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #121d34, #0e1526);
       cursor: pointer;
       display: grid;
       place-items: center;
     }
 
-    .burger span,
-    .burger span::before,
-    .burger span::after {
-      display: block;
+    .burger span, .burger span::before, .burger span::after {
       width: 18px;
       height: 2px;
+      display: block;
+      content: '';
       background: var(--text);
       position: relative;
-      content: '';
+      border-radius: 2px;
     }
 
-    .burger span::before { position: absolute; top: -6px; left: 0; }
-    .burger span::after { position: absolute; top: 6px; left: 0; }
+    .burger span::before { position: absolute; top: -6px; }
+    .burger span::after { position: absolute; top: 6px; }
 
-    .brand-text { opacity: 0; white-space: nowrap; transition: opacity 130ms ease; }
-    .app.sidebar-open .brand-text { opacity: 1; }
+    .brand-copy, .label { opacity: 0; white-space: nowrap; transition: opacity .15s ease; }
+    .app.open .brand-copy, .app.open .label { opacity: 1; }
 
     .nav-btn {
-      width: 100%;
       border: 1px solid var(--line);
-      background: var(--panel);
+      background: linear-gradient(180deg, #131d34, #0f1729);
       color: var(--text);
       border-radius: 12px;
       padding: 10px 12px;
+      width: 100%;
       display: flex;
       align-items: center;
       gap: 10px;
-      cursor: pointer;
-      text-align: left;
       font-weight: 700;
+      cursor: pointer;
+      transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
     }
 
-    .nav-btn .label { opacity: 0; transition: opacity 130ms ease; white-space: nowrap; }
-    .app.sidebar-open .nav-btn .label { opacity: 1; }
+    .nav-btn:hover { transform: translateY(-1px); border-color: #4466a8; box-shadow: 0 0 0 1px rgba(105,177,255,.15) inset; }
+    .nav-btn.active { background: linear-gradient(90deg, rgba(105,177,255,.22), rgba(143,107,255,.22)); border-color: #4b72b9; }
 
-    .nav-btn.active {
-      background: linear-gradient(90deg, rgba(92,167,255,.15), rgba(139,92,246,.15));
-      border-color: #3f6eb6;
-    }
-
-    .main {
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      min-width: 0;
-    }
+    .main { padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
     .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(16, 21, 34, 0.85);
+      background: rgba(15, 21, 36, 0.88);
       border: 1px solid var(--line);
       border-radius: 14px;
       padding: 12px 16px;
-      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--glow);
     }
 
     .status { font-size: .82rem; color: var(--muted); }
-
-    .clock { font-size: 1.1rem; font-weight: 800; color: var(--accent); }
+    .clock { color: var(--accent); font-weight: 800; letter-spacing: .03em; }
 
     .view { display: none; }
     .view.active { display: block; }
 
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1.3fr 1fr;
-      gap: 14px;
-    }
-
     .card {
-      background: rgba(16, 21, 34, 0.9);
+      background: rgba(15, 21, 36, 0.9);
       border: 1px solid var(--line);
       border-radius: 14px;
       padding: 14px;
-      box-shadow: var(--shadow);
+      box-shadow: var(--glow);
     }
 
-    .card h3 { margin: 0 0 12px; font-size: .95rem; letter-spacing: .02em; }
+    .card h3 { margin: 0 0 12px; font-size: .95rem; }
+    .muted { color: var(--muted); }
 
+    .btn {
+      border: 1px solid #4165a6;
+      background: linear-gradient(90deg, rgba(105,177,255,.25), rgba(143,107,255,.22));
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(105,177,255,.2) inset; }
+
+    .ranking-layout { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; }
     .rank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
     .rank-col { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 
-    .row,
-    .header-row {
+    .head-row, .rank-row {
       display: grid;
-      grid-template-columns: 30px 56px 30px 30px 50px 52px 52px;
+      grid-template-columns: 30px 56px 34px 34px 56px 54px 56px;
       padding: 6px 8px;
       font-size: .74rem;
       align-items: center;
     }
 
-    .header-row { background: #1a2235; color: var(--muted); font-weight: 800; }
-    .row { border-top: 1px solid #1d2740; }
-    .row.me { background: rgba(92,167,255,.16); }
+    .head-row { background: #1a2440; color: var(--muted); font-weight: 800; }
+    .rank-row { border-top: 1px solid #1f2b48; }
+    .rank-row.me { background: rgba(105,177,255,.18); }
 
-    .match {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      gap: 8px;
-      align-items: center;
-      text-align: center;
-    }
-
-    .alliance {
-      padding: 10px;
+    .alliance-box {
       border-radius: 12px;
+      padding: 10px;
       font-weight: 800;
-      font-size: 1.1rem;
+      text-align: center;
+      font-size: 1.06rem;
     }
 
     .red { background: rgba(239,68,68,.2); color: #fecaca; }
     .blue { background: rgba(59,130,246,.2); color: #bfdbfe; }
 
-    input, select, textarea, button {
-      font: inherit;
-      color: var(--text);
-    }
-
-    .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      font-size: .8rem;
-      color: var(--muted);
-    }
-
-    .field input, .field select, .field textarea {
-      background: var(--panel-2);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 8px 10px;
-      min-width: 120px;
-    }
-
-    .btn {
-      border: 1px solid #3f6eb6;
-      border-radius: 10px;
-      background: linear-gradient(90deg, rgba(92,167,255,.2), rgba(139,92,246,.2));
-      padding: 8px 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .table { width: 100%; border-collapse: collapse; font-size: .83rem; }
-    .table th, .table td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; }
-    .table th { color: var(--muted); font-weight: 700; }
-
     .pill {
       display: inline-block;
       border: 1px solid var(--line);
       border-radius: 999px;
-      font-size: .72rem;
       padding: 2px 8px;
+      font-size: .75rem;
       color: var(--muted);
     }
 
+    .match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+    .table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .table th, .table td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; }
+    .table th { color: var(--muted); font-weight: 700; }
+
+    .table tr.team-match { background: rgba(105,177,255,.16); }
+    .table tr.current-match { box-shadow: inset 3px 0 0 #f8c23a; }
+
     .stream-box {
-      position: relative;
       width: 100%;
       aspect-ratio: 16 / 9;
       border: 1px solid var(--line);
       border-radius: 12px;
       overflow: hidden;
-      background: #0b1020;
+      background: #0b1222;
     }
 
     .stream-box iframe { width: 100%; height: 100%; border: 0; }
 
-    .muted { color: var(--muted); font-size: .85rem; }
+    input {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 9px 10px;
+      min-width: 260px;
+    }
 
     @media (max-width: 1080px) {
-      .grid-2 { grid-template-columns: 1fr; }
-      .rank-grid { grid-template-columns: 1fr; }
       .app { grid-template-columns: 1fr; }
+      .brand-copy, .label { opacity: 1 !important; }
       .sidebar { flex-direction: row; overflow-x: auto; }
-      .brand-text, .nav-btn .label { opacity: 1 !important; }
+      .ranking-layout, .match-grid, .rank-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="app sidebar-open" id="app">
+  <div class="app open" id="app">
     <aside class="sidebar">
       <div class="brand">
-        <button class="burger" id="burger" aria-label="Toggle menu"><span></span></button>
-        <div class="brand-text">
-          <div style="font-weight:900">PIT COMMAND</div>
-          <div style="font-size:.72rem;color:var(--muted)">FRC Team 3950</div>
+        <button class="burger" id="burger" aria-label="Toggle nav"><span></span></button>
+        <div class="brand-copy">
+          <div style="font-weight:900">FRC COMMAND</div>
+          <div style="font-size:.74rem;color:var(--muted)">Team 3950</div>
         </div>
       </div>
 
-      <button class="nav-btn active" data-view="dashboard"><span>🏁</span><span class="label">Ranking View</span></button>
-      <button class="nav-btn" data-view="pit"><span>🧰</span><span class="label">Pit View</span></button>
+      <button class="nav-btn active" data-view="rankings"><span>🏆</span><span class="label">Ranking View</span></button>
+      <button class="nav-btn" data-view="matches"><span>🧩</span><span class="label">Matches</span></button>
       <button class="nav-btn" data-view="stream"><span>📺</span><span class="label">Live Stream</span></button>
-      <button class="nav-btn" data-view="stats"><span>📊</span><span class="label">Stat Search</span></button>
-      <button class="nav-btn" data-view="matches"><span>🗂️</span><span class="label">Past Matches</span></button>
-      <button class="nav-btn" data-view="settings"><span>⚙️</span><span class="label">Settings</span></button>
     </aside>
 
     <main class="main">
       <div class="topbar">
         <div>
           <div style="font-weight:800" id="event-name">Loading event...</div>
-          <div class="status" id="sync-status">Connecting to The Blue Alliance...</div>
+          <div class="status" id="sync-status">Syncing live data…</div>
         </div>
         <div class="clock" id="clock">--:--:--</div>
       </div>
 
-      <section class="view active" id="view-dashboard">
-        <div class="grid-2">
+      <section class="view active" id="view-rankings">
+        <div class="ranking-layout">
           <div class="card">
             <h3>Live Rankings</h3>
             <div class="rank-grid">
@@ -293,24 +243,24 @@
             </div>
           </div>
 
-          <div style="display:flex; flex-direction:column; gap:14px;">
+          <div style="display:flex;flex-direction:column;gap:14px;">
             <div class="card">
               <h3>Last Completed Match</h3>
-              <div id="last-label" class="muted">Qualification --</div>
-              <div style="margin-top:10px;display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;">
-                <div class="alliance red" id="last-red">---</div>
+              <div class="muted" id="last-label">Qualification --</div>
+              <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-top:10px;">
+                <div class="alliance-box red" id="last-red">---</div>
                 <div class="pill" id="last-score">0 - 0</div>
-                <div class="alliance blue" id="last-blue">---</div>
+                <div class="alliance-box blue" id="last-blue">---</div>
               </div>
             </div>
 
             <div class="card">
-              <h3>Upcoming Match</h3>
-              <div id="next-label" class="muted">Qualification --</div>
-              <div class="match" style="margin-top:10px;">
-                <div class="alliance red" id="next-red">---</div>
+              <h3>Next Match</h3>
+              <div class="muted" id="next-label">Qualification --</div>
+              <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-top:10px;">
+                <div class="alliance-box red" id="next-red">---</div>
                 <div class="pill">VS</div>
-                <div class="alliance blue" id="next-blue">---</div>
+                <div class="alliance-box blue" id="next-blue">---</div>
               </div>
               <div id="next-time" style="margin-top:10px;color:var(--gold);font-weight:700;">Predicted start: --</div>
             </div>
@@ -318,39 +268,30 @@
         </div>
       </section>
 
-      <section class="view" id="view-pit">
+      <section class="view" id="view-matches">
+        <div class="match-grid">
+          <div class="card">
+            <h3>Current / Next Match</h3>
+            <div class="muted" id="current-match-label">Q--</div>
+            <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-top:10px;">
+              <div class="alliance-box red" id="current-red">---</div>
+              <div class="pill">VS</div>
+              <div class="alliance-box blue" id="current-blue">---</div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Team Spotlight</h3>
+            <div class="muted">Tracking Team <strong id="team-number-label">3950</strong> across all qualification matches.</div>
+            <p style="margin-top:10px;" id="team-summary">Waiting for match data…</p>
+          </div>
+        </div>
+
         <div class="card">
-          <h3>Pit Scouting Notes</h3>
-          <div class="muted" style="margin-bottom:12px;">Quick scouting form stored locally in your browser. Exportable as CSV.</div>
-          <div class="controls">
-            <label class="field">Team
-              <input id="pit-team" placeholder="e.g. 1690" />
-            </label>
-            <label class="field">Drive Type
-              <select id="pit-drive">
-                <option>Swerve</option>
-                <option>Tank</option>
-                <option>Mecanum</option>
-                <option>Other</option>
-              </select>
-            </label>
-            <label class="field">Auto Notes
-              <input id="pit-auto" placeholder="3 coral + mobility" />
-            </label>
-            <label class="field">Teleop Notes
-              <input id="pit-teleop" placeholder="Fast cycle bot" />
-            </label>
-            <label class="field" style="min-width:260px;flex:1;">General Notes
-              <textarea id="pit-notes" rows="2" placeholder="Defense ability, climb consistency, repair concerns..."></textarea>
-            </label>
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="btn" id="save-pit">Save Note</button>
-            <button class="btn" id="export-pit">Export CSV</button>
-            <button class="btn" id="clear-pit">Clear All</button>
-          </div>
-          <table class="table" id="pit-table">
-            <thead><tr><th>Team</th><th>Drive</th><th>Auto</th><th>Teleop</th><th>Notes</th><th>Saved</th></tr></thead>
+          <h3>Qualification Schedule (Team Matches Highlighted)</h3>
+          <table class="table" id="schedule-table">
+            <thead>
+              <tr><th>Match</th><th>Red</th><th>Blue</th><th>Status</th><th>Score</th></tr>
+            </thead>
             <tbody></tbody>
           </table>
         </div>
@@ -358,130 +299,62 @@
 
       <section class="view" id="view-stream">
         <div class="card">
-          <h3>Live Stream View</h3>
-          <div class="controls">
-            <label class="field" style="flex:1;min-width:260px;">YouTube Embed URL
-              <input id="stream-url" placeholder="https://www.youtube.com/embed/..." />
-            </label>
-            <button class="btn" id="save-stream">Load Stream</button>
+          <h3>Live Stream</h3>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+            <input id="stream-url" placeholder="https://www.youtube.com/embed/..." />
+            <button class="btn" id="load-stream">Load Stream</button>
           </div>
           <div class="stream-box"><iframe id="stream-frame" allowfullscreen></iframe></div>
-          <p class="muted" style="margin-top:10px;">Tip: paste an official FRC event stream embed URL once and it stays saved.</p>
-        </div>
-      </section>
-
-      <section class="view" id="view-stats">
-        <div class="card">
-          <h3>Stat Search (Statbotics-style Quick Lookup)</h3>
-          <div class="controls">
-            <label class="field">Team Number
-              <input id="team-search" placeholder="3950" />
-            </label>
-            <button class="btn" id="run-search">Search Team</button>
-          </div>
-          <div id="team-result" class="muted">Search a team in this event to view record, ranking, and next match.</div>
-        </div>
-      </section>
-
-      <section class="view" id="view-matches">
-        <div class="card">
-          <h3>Past Matches</h3>
-          <table class="table" id="match-table">
-            <thead><tr><th>Match</th><th>Red</th><th>Blue</th><th>Score</th><th>Winner</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="view" id="view-settings">
-        <div class="card">
-          <h3>App Settings (Local)</h3>
-          <div class="muted" style="margin-bottom:12px;">Since this is personal-use, you can keep and edit API keys here. Values are stored in localStorage for this browser only.</div>
-          <div class="controls">
-            <label class="field">Team Number
-              <input id="cfg-team" placeholder="3950" />
-            </label>
-            <label class="field">Event Key
-              <input id="cfg-event" placeholder="2026nyli2" />
-            </label>
-            <label class="field" style="min-width:360px; flex:1;">Blue Alliance API Key
-              <input id="cfg-tba" />
-            </label>
-            <label class="field" style="min-width:360px; flex:1;">Nexus API Key
-              <input id="cfg-nexus" />
-            </label>
-          </div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn" id="save-settings">Save + Refresh</button>
-            <button class="btn" id="reset-settings">Reset Defaults</button>
-          </div>
-          <p class="muted" id="settings-status" style="margin-top:12px;">No changes saved yet.</p>
         </div>
       </section>
     </main>
   </div>
 
   <script>
-    const DEFAULTS = {
-      team: '3950',
-      event: '2026nyli2',
-      tbaKey: 'aarQMLYkn3tn4LX2UPkoBcMEkNnwyN4vglGipehna9VjUWdWcvnmYGSE2bAM6HdL',
-      nexusKey: 'REPLACE_WITH_YOUR_NEXUS_KEY'
-    };
-    const CONFIG_KEY = 'frcpit_config_v1';
-    let config = loadConfig();
-
-    function loadConfig() {
-      try {
-        const stored = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
-        return { ...DEFAULTS, ...stored };
-      } catch {
-        return { ...DEFAULTS };
-      }
-    }
-
-    function getHeaders() {
-      return { 'X-TBA-Auth-Key': config.tbaKey };
-    }
-
-    let rankings = [];
-    let matches = [];
+    const TEAM = '3950';
+    const EVENT = '2026nyli2';
+    const TBA_KEY = 'aarQMLYkn3tn4LX2UPkoBcMEkNnwyN4vglGipehna9VjUWdWcvnmYGSE2bAM6HdL';
+    const NEXUS_KEY = 'REPLACE_WITH_YOUR_NEXUS_KEY';
 
     const app = document.getElementById('app');
     const navButtons = Array.from(document.querySelectorAll('.nav-btn'));
     const views = Array.from(document.querySelectorAll('.view'));
 
-    document.getElementById('burger').addEventListener('click', () => {
-      app.classList.toggle('sidebar-open');
-    });
+    let rankings = [];
+    let matches = [];
+
+    function headers() {
+      return { 'X-TBA-Auth-Key': TBA_KEY };
+    }
+
+    document.getElementById('burger').addEventListener('click', () => app.classList.toggle('open'));
 
     navButtons.forEach(btn => {
       btn.addEventListener('click', () => {
-        navButtons.forEach(x => x.classList.remove('active'));
+        navButtons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const target = btn.dataset.view;
         views.forEach(v => v.classList.toggle('active', v.id === `view-${target}`));
       });
     });
 
-    function fmtTeams(keys = []) {
-      return keys.map(k => k.replace('frc', '')).join(' ');
+    function toNums(teamKeys = []) {
+      return teamKeys.map(k => k.replace('frc', ''));
     }
 
-    function renderRankings() {
-      const half = Math.ceil(rankings.length / 2);
-      renderRankColumn('col-1', rankings.slice(0, half));
-      renderRankColumn('col-2', rankings.slice(half));
+    function includesTeam(match) {
+      const all = [...toNums(match.alliances.red.team_keys), ...toNums(match.alliances.blue.team_keys)];
+      return all.includes(TEAM);
     }
 
     function renderRankColumn(id, rows) {
-      let html = '<div class="header-row"><span>#</span><span>TEAM</span><span>MP</span><span>RP</span><span>AVG</span><span>SCORE</span><span>W-L-T</span></div>';
-      for (const r of rows) {
-        const isMe = r.team_key === `frc${config.team}` ? 'me' : '';
+      let html = '<div class="head-row"><span>#</span><span>TEAM</span><span>MP</span><span>RP</span><span>AVG RP</span><span>SCORE</span><span>W-L-T</span></div>';
+      rows.forEach(r => {
+        const me = r.team_key === `frc${TEAM}` ? 'me' : '';
         const rp = r.extra_stats?.[0] ?? 0;
         const avgRp = (rp / Math.max(1, r.matches_played)).toFixed(2);
         const avgScore = (r.sort_orders?.[1] ?? 0).toFixed(1);
-        html += `<div class="row ${isMe}">
+        html += `<div class="rank-row ${me}">
           <span><b>${r.rank}</b></span>
           <span><b>${r.team_key.replace('frc','')}</b></span>
           <span>${r.matches_played}</span>
@@ -490,211 +363,107 @@
           <span style="color:var(--gold)">${avgScore}</span>
           <span>${r.record.wins}-${r.record.losses}-${r.record.ties}</span>
         </div>`;
-      }
+      });
       document.getElementById(id).innerHTML = html;
     }
 
+    function renderRankings() {
+      const half = Math.ceil(rankings.length / 2);
+      renderRankColumn('col-1', rankings.slice(0, half));
+      renderRankColumn('col-2', rankings.slice(half));
+    }
+
     function renderMatchCards() {
-      const quals = matches
-        .filter(m => m.comp_level === 'qm')
-        .sort((a, b) => a.match_number - b.match_number);
+      const quals = matches.filter(m => m.comp_level === 'qm').sort((a, b) => a.match_number - b.match_number);
+      const lastPlayed = [...quals].reverse().find(m => m.alliances.red.score >= 0 && m.alliances.blue.score >= 0);
+      const next = quals.find(m => m.alliances.red.score === -1 || m.alliances.blue.score === -1);
 
-      const last = [...quals].reverse().find(m => m.alliances.red.score >= 0 && m.alliances.blue.score >= 0);
-      const upcoming = quals.find(m => m.alliances.red.score === -1 || m.alliances.blue.score === -1);
-
-      if (last) {
-        document.getElementById('last-label').textContent = `Qualification ${last.match_number}`;
-        document.getElementById('last-red').textContent = fmtTeams(last.alliances.red.team_keys);
-        document.getElementById('last-blue').textContent = fmtTeams(last.alliances.blue.team_keys);
-        document.getElementById('last-score').textContent = `${last.alliances.red.score} - ${last.alliances.blue.score}`;
+      if (lastPlayed) {
+        document.getElementById('last-label').textContent = `Qualification ${lastPlayed.match_number}`;
+        document.getElementById('last-red').textContent = toNums(lastPlayed.alliances.red.team_keys).join(' ');
+        document.getElementById('last-blue').textContent = toNums(lastPlayed.alliances.blue.team_keys).join(' ');
+        document.getElementById('last-score').textContent = `${lastPlayed.alliances.red.score} - ${lastPlayed.alliances.blue.score}`;
       }
 
-      if (upcoming) {
-        document.getElementById('next-label').textContent = `Qualification ${upcoming.match_number}`;
-        document.getElementById('next-red').textContent = fmtTeams(upcoming.alliances.red.team_keys);
-        document.getElementById('next-blue').textContent = fmtTeams(upcoming.alliances.blue.team_keys);
-        const epoch = upcoming.predicted_time || upcoming.time;
+      if (next) {
+        document.getElementById('next-label').textContent = `Qualification ${next.match_number}`;
+        document.getElementById('next-red').textContent = toNums(next.alliances.red.team_keys).join(' ');
+        document.getElementById('next-blue').textContent = toNums(next.alliances.blue.team_keys).join(' ');
+        const epoch = next.predicted_time || next.time;
         document.getElementById('next-time').textContent = epoch
           ? `Predicted start: ${new Date(epoch * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
           : 'Predicted start: TBD';
+
+        document.getElementById('current-match-label').textContent = `Qualification ${next.match_number}`;
+        document.getElementById('current-red').textContent = toNums(next.alliances.red.team_keys).join(' ');
+        document.getElementById('current-blue').textContent = toNums(next.alliances.blue.team_keys).join(' ');
       }
     }
 
-    function renderPastMatches() {
-      const tbody = document.querySelector('#match-table tbody');
-      const played = matches
-        .filter(m => m.comp_level === 'qm' && m.alliances.red.score >= 0 && m.alliances.blue.score >= 0)
-        .sort((a, b) => b.match_number - a.match_number);
+    function renderSchedule() {
+      const tbody = document.querySelector('#schedule-table tbody');
+      const quals = matches.filter(m => m.comp_level === 'qm').sort((a, b) => a.match_number - b.match_number);
+      const nextKey = quals.find(m => m.alliances.red.score === -1 || m.alliances.blue.score === -1)?.key;
 
-      tbody.innerHTML = played.map(m => {
-        const winner = m.winning_alliance ? m.winning_alliance.toUpperCase() : 'TIE';
-        return `<tr>
+      let teamCount = 0;
+      tbody.innerHTML = quals.map(m => {
+        const hasTeam = includesTeam(m);
+        if (hasTeam) teamCount += 1;
+        const currentClass = m.key === nextKey ? 'current-match' : '';
+        const teamClass = hasTeam ? 'team-match' : '';
+        const scoreKnown = m.alliances.red.score >= 0 && m.alliances.blue.score >= 0;
+        return `<tr class="${teamClass} ${currentClass}">
           <td>Q${m.match_number}</td>
-          <td>${fmtTeams(m.alliances.red.team_keys)}</td>
-          <td>${fmtTeams(m.alliances.blue.team_keys)}</td>
-          <td>${m.alliances.red.score} - ${m.alliances.blue.score}</td>
-          <td>${winner}</td>
+          <td>${toNums(m.alliances.red.team_keys).join(' ')}</td>
+          <td>${toNums(m.alliances.blue.team_keys).join(' ')}</td>
+          <td>${scoreKnown ? 'Played' : (m.key === nextKey ? 'Current / Next' : 'Upcoming')}</td>
+          <td>${scoreKnown ? `${m.alliances.red.score} - ${m.alliances.blue.score}` : '--'}</td>
         </tr>`;
       }).join('');
+
+      document.getElementById('team-summary').textContent = `${TEAM} appears in ${teamCount} qualification matches. Highlighted rows track your team, and the gold-marked row is current/next.`;
+      document.getElementById('team-number-label').textContent = TEAM;
     }
 
     async function loadEventMeta() {
-      const evt = await fetch(`https://www.thebluealliance.com/api/v3/event/${config.event}`, { headers: getHeaders() }).then(r => r.json());
-      document.getElementById('event-name').textContent = evt.name || config.event;
+      const event = await fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}`, { headers: headers() }).then(r => r.json());
+      document.getElementById('event-name').textContent = event.name || EVENT;
     }
 
     async function refreshData() {
       try {
         const [rankRes, matchRes] = await Promise.all([
-          fetch(`https://www.thebluealliance.com/api/v3/event/${config.event}/rankings`, { headers: getHeaders() }),
-          fetch(`https://www.thebluealliance.com/api/v3/event/${config.event}/matches/simple`, { headers: getHeaders() })
+          fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/rankings`, { headers: headers() }),
+          fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/matches/simple`, { headers: headers() })
         ]);
-
-        const rankData = await rankRes.json();
-        rankings = rankData.rankings || [];
+        rankings = (await rankRes.json()).rankings || [];
         matches = await matchRes.json();
 
         renderRankings();
         renderMatchCards();
-        renderPastMatches();
-        document.getElementById('sync-status').textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
+        renderSchedule();
+        document.getElementById('sync-status').textContent = `Live sync: ${new Date().toLocaleTimeString()}`;
       } catch (err) {
         console.error(err);
-        document.getElementById('sync-status').textContent = 'Sync failed. Check API key/network.';
+        document.getElementById('sync-status').textContent = 'Sync failed. Check event/API key.';
       }
     }
 
-    // Pit scouting storage
-    const PIT_KEY = 'frcpit_pit_notes_v1';
-
-    function getPitRows() {
-      try { return JSON.parse(localStorage.getItem(PIT_KEY) || '[]'); }
-      catch { return []; }
-    }
-
-    function setPitRows(rows) {
-      localStorage.setItem(PIT_KEY, JSON.stringify(rows));
-      renderPitRows();
-    }
-
-    function renderPitRows() {
-      const rows = getPitRows();
-      const tbody = document.querySelector('#pit-table tbody');
-      tbody.innerHTML = rows.map(r => `<tr>
-        <td>${r.team}</td><td>${r.drive}</td><td>${r.auto}</td><td>${r.teleop}</td><td>${r.notes}</td><td>${r.saved}</td>
-      </tr>`).join('');
-    }
-
-    document.getElementById('save-pit').addEventListener('click', () => {
-      const row = {
-        team: document.getElementById('pit-team').value.trim(),
-        drive: document.getElementById('pit-drive').value,
-        auto: document.getElementById('pit-auto').value.trim(),
-        teleop: document.getElementById('pit-teleop').value.trim(),
-        notes: document.getElementById('pit-notes').value.trim(),
-        saved: new Date().toLocaleString()
-      };
-      if (!row.team) return;
-      const rows = getPitRows();
-      rows.unshift(row);
-      setPitRows(rows);
-      document.getElementById('pit-team').value = '';
-      document.getElementById('pit-auto').value = '';
-      document.getElementById('pit-teleop').value = '';
-      document.getElementById('pit-notes').value = '';
-    });
-
-    document.getElementById('clear-pit').addEventListener('click', () => {
-      if (confirm('Delete all pit notes?')) setPitRows([]);
-    });
-
-    document.getElementById('export-pit').addEventListener('click', () => {
-      const rows = getPitRows();
-      if (!rows.length) return;
-      const keys = ['team', 'drive', 'auto', 'teleop', 'notes', 'saved'];
-      const csv = [keys.join(','), ...rows.map(r => keys.map(k => `"${(r[k] || '').replaceAll('"', '""')}"`).join(','))].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `pit-notes-${config.event}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    // Stream settings
     const STREAM_KEY = 'frcpit_stream_url';
     const streamInput = document.getElementById('stream-url');
     const streamFrame = document.getElementById('stream-frame');
 
     function loadStream() {
-      const url = localStorage.getItem(STREAM_KEY) || 'https://www.youtube.com/embed/live_stream?channel=FIRSTinspires';
-      streamInput.value = url;
-      streamFrame.src = url;
+      const saved = localStorage.getItem(STREAM_KEY) || 'https://www.youtube.com/embed/live_stream?channel=FIRSTinspires';
+      streamInput.value = saved;
+      streamFrame.src = saved;
     }
 
-    document.getElementById('save-stream').addEventListener('click', () => {
-      const url = streamInput.value.trim();
-      if (!url) return;
-      localStorage.setItem(STREAM_KEY, url);
-      streamFrame.src = url;
-    });
-
-    // Team search
-    document.getElementById('run-search').addEventListener('click', async () => {
-      const raw = document.getElementById('team-search').value.trim();
-      const num = raw.replace(/\D/g, '');
-      const out = document.getElementById('team-result');
-      if (!num) return;
-      try {
-        const [status, rank] = await Promise.all([
-          fetch(`https://www.thebluealliance.com/api/v3/team/frc${num}/event/${config.event}/status`, { headers: getHeaders() }).then(r => r.json()),
-          fetch(`https://www.thebluealliance.com/api/v3/event/${config.event}/rankings`, { headers: getHeaders() }).then(r => r.json())
-        ]);
-
-        const r = (rank.rankings || []).find(x => x.team_key === `frc${num}`);
-        const next = status?.next_match_key || 'N/A';
-        const rec = r ? `${r.record.wins}-${r.record.losses}-${r.record.ties}` : 'N/A';
-        const avg = r ? (r.sort_orders?.[1] ?? 0).toFixed(1) : 'N/A';
-
-        out.innerHTML = `
-          <div class="pill">Team ${num}</div>
-          <p><b>Rank:</b> ${r?.rank ?? 'N/A'} &nbsp;&nbsp; <b>Record:</b> ${rec} &nbsp;&nbsp; <b>Avg Match Score:</b> ${avg}</p>
-          <p><b>Current status:</b> ${status?.alliance_status_str || 'N/A'}</p>
-          <p><b>Next match key:</b> ${next}</p>
-        `;
-      } catch (e) {
-        out.textContent = 'Unable to fetch team stats. Check API key or event code.';
-      }
-    });
-
-    function loadSettingsUi() {
-      document.getElementById('cfg-team').value = config.team;
-      document.getElementById('cfg-event').value = config.event;
-      document.getElementById('cfg-tba').value = config.tbaKey;
-      document.getElementById('cfg-nexus').value = config.nexusKey;
-    }
-
-    document.getElementById('save-settings').addEventListener('click', async () => {
-      config = {
-        team: document.getElementById('cfg-team').value.trim() || DEFAULTS.team,
-        event: document.getElementById('cfg-event').value.trim() || DEFAULTS.event,
-        tbaKey: document.getElementById('cfg-tba').value.trim() || DEFAULTS.tbaKey,
-        nexusKey: document.getElementById('cfg-nexus').value.trim() || DEFAULTS.nexusKey
-      };
-      localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-      document.getElementById('settings-status').textContent = `Saved. Reloaded with team ${config.team}, event ${config.event}.`;
-      await loadEventMeta();
-      await refreshData();
-    });
-
-    document.getElementById('reset-settings').addEventListener('click', async () => {
-      config = { ...DEFAULTS };
-      localStorage.removeItem(CONFIG_KEY);
-      loadSettingsUi();
-      document.getElementById('settings-status').textContent = 'Reset to defaults.';
-      await loadEventMeta();
-      await refreshData();
+    document.getElementById('load-stream').addEventListener('click', () => {
+      const val = streamInput.value.trim();
+      if (!val) return;
+      localStorage.setItem(STREAM_KEY, val);
+      streamFrame.src = val;
     });
 
     setInterval(() => {
@@ -702,8 +471,6 @@
     }, 1000);
 
     (async function init() {
-      loadSettingsUi();
-      renderPitRows();
       loadStream();
       await loadEventMeta();
       await refreshData();
