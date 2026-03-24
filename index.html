@@ -271,6 +271,7 @@
       <button class="nav-btn" data-view="stream"><span>📺</span><span class="label">Live Stream</span></button>
       <button class="nav-btn" data-view="stats"><span>📊</span><span class="label">Stat Search</span></button>
       <button class="nav-btn" data-view="matches"><span>🗂️</span><span class="label">Past Matches</span></button>
+      <button class="nav-btn" data-view="settings"><span>⚙️</span><span class="label">Settings</span></button>
     </aside>
 
     <main class="main">
@@ -391,14 +392,57 @@
           </table>
         </div>
       </section>
+
+      <section class="view" id="view-settings">
+        <div class="card">
+          <h3>App Settings (Local)</h3>
+          <div class="muted" style="margin-bottom:12px;">Since this is personal-use, you can keep and edit API keys here. Values are stored in localStorage for this browser only.</div>
+          <div class="controls">
+            <label class="field">Team Number
+              <input id="cfg-team" placeholder="3950" />
+            </label>
+            <label class="field">Event Key
+              <input id="cfg-event" placeholder="2026nyli2" />
+            </label>
+            <label class="field" style="min-width:360px; flex:1;">Blue Alliance API Key
+              <input id="cfg-tba" />
+            </label>
+            <label class="field" style="min-width:360px; flex:1;">Nexus API Key
+              <input id="cfg-nexus" />
+            </label>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn" id="save-settings">Save + Refresh</button>
+            <button class="btn" id="reset-settings">Reset Defaults</button>
+          </div>
+          <p class="muted" id="settings-status" style="margin-top:12px;">No changes saved yet.</p>
+        </div>
+      </section>
     </main>
   </div>
 
   <script>
-    const TEAM = '3950';
-    const EVENT = '2026nyli2';
-    const TBA_KEY = 'aarQMLYkn3tn4LX2UPkoBcMEkNnwyN4vglGipehna9VjUWdWcvnmYGSE2bAM6HdL';
-    const HEADERS = { 'X-TBA-Auth-Key': TBA_KEY };
+    const DEFAULTS = {
+      team: '3950',
+      event: '2026nyli2',
+      tbaKey: 'aarQMLYkn3tn4LX2UPkoBcMEkNnwyN4vglGipehna9VjUWdWcvnmYGSE2bAM6HdL',
+      nexusKey: 'REPLACE_WITH_YOUR_NEXUS_KEY'
+    };
+    const CONFIG_KEY = 'frcpit_config_v1';
+    let config = loadConfig();
+
+    function loadConfig() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+        return { ...DEFAULTS, ...stored };
+      } catch {
+        return { ...DEFAULTS };
+      }
+    }
+
+    function getHeaders() {
+      return { 'X-TBA-Auth-Key': config.tbaKey };
+    }
 
     let rankings = [];
     let matches = [];
@@ -433,7 +477,7 @@
     function renderRankColumn(id, rows) {
       let html = '<div class="header-row"><span>#</span><span>TEAM</span><span>MP</span><span>RP</span><span>AVG</span><span>SCORE</span><span>W-L-T</span></div>';
       for (const r of rows) {
-        const isMe = r.team_key === `frc${TEAM}` ? 'me' : '';
+        const isMe = r.team_key === `frc${config.team}` ? 'me' : '';
         const rp = r.extra_stats?.[0] ?? 0;
         const avgRp = (rp / Math.max(1, r.matches_played)).toFixed(2);
         const avgScore = (r.sort_orders?.[1] ?? 0).toFixed(1);
@@ -495,15 +539,15 @@
     }
 
     async function loadEventMeta() {
-      const evt = await fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}`, { headers: HEADERS }).then(r => r.json());
-      document.getElementById('event-name').textContent = evt.name || EVENT;
+      const evt = await fetch(`https://www.thebluealliance.com/api/v3/event/${config.event}`, { headers: getHeaders() }).then(r => r.json());
+      document.getElementById('event-name').textContent = evt.name || config.event;
     }
 
     async function refreshData() {
       try {
         const [rankRes, matchRes] = await Promise.all([
-          fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/rankings`, { headers: HEADERS }),
-          fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/matches/simple`, { headers: HEADERS })
+          fetch(`https://www.thebluealliance.com/api/v3/event/${config.event}/rankings`, { headers: getHeaders() }),
+          fetch(`https://www.thebluealliance.com/api/v3/event/${config.event}/matches/simple`, { headers: getHeaders() })
         ]);
 
         const rankData = await rankRes.json();
@@ -573,7 +617,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `pit-notes-${EVENT}.csv`;
+      a.download = `pit-notes-${config.event}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     });
@@ -604,8 +648,8 @@
       if (!num) return;
       try {
         const [status, rank] = await Promise.all([
-          fetch(`https://www.thebluealliance.com/api/v3/team/frc${num}/event/${EVENT}/status`, { headers: HEADERS }).then(r => r.json()),
-          fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/rankings`, { headers: HEADERS }).then(r => r.json())
+          fetch(`https://www.thebluealliance.com/api/v3/team/frc${num}/event/${config.event}/status`, { headers: getHeaders() }).then(r => r.json()),
+          fetch(`https://www.thebluealliance.com/api/v3/event/${config.event}/rankings`, { headers: getHeaders() }).then(r => r.json())
         ]);
 
         const r = (rank.rankings || []).find(x => x.team_key === `frc${num}`);
@@ -624,11 +668,41 @@
       }
     });
 
+    function loadSettingsUi() {
+      document.getElementById('cfg-team').value = config.team;
+      document.getElementById('cfg-event').value = config.event;
+      document.getElementById('cfg-tba').value = config.tbaKey;
+      document.getElementById('cfg-nexus').value = config.nexusKey;
+    }
+
+    document.getElementById('save-settings').addEventListener('click', async () => {
+      config = {
+        team: document.getElementById('cfg-team').value.trim() || DEFAULTS.team,
+        event: document.getElementById('cfg-event').value.trim() || DEFAULTS.event,
+        tbaKey: document.getElementById('cfg-tba').value.trim() || DEFAULTS.tbaKey,
+        nexusKey: document.getElementById('cfg-nexus').value.trim() || DEFAULTS.nexusKey
+      };
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+      document.getElementById('settings-status').textContent = `Saved. Reloaded with team ${config.team}, event ${config.event}.`;
+      await loadEventMeta();
+      await refreshData();
+    });
+
+    document.getElementById('reset-settings').addEventListener('click', async () => {
+      config = { ...DEFAULTS };
+      localStorage.removeItem(CONFIG_KEY);
+      loadSettingsUi();
+      document.getElementById('settings-status').textContent = 'Reset to defaults.';
+      await loadEventMeta();
+      await refreshData();
+    });
+
     setInterval(() => {
       document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: true });
     }, 1000);
 
     (async function init() {
+      loadSettingsUi();
       renderPitRows();
       loadStream();
       await loadEventMeta();
