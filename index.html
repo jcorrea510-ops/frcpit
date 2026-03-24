@@ -1,161 +1,714 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3950 | PIT COMMAND</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        :root {
-            --bg: #050505; --card: #111113; --text: #ffffff; --text-muted: #52525b;
-            --accent: #3b82f6; --red: #ef4444; --blue: #3b82f6; --border: #27272a;
-        }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; overflow: hidden; height: 100vh; }
-        
-        .main-layout { display: grid; grid-template-columns: 520px 1fr; gap: 15px; height: calc(100vh - 60px); }
-        
-        /* Left Side: Rankings */
-        .rankings-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .rank-column { background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
-        .table-header, .rank-row { 
-            display: grid; grid-template-columns: 25px 45px 25px 25px 35px 45px 40px; 
-            padding: 6px 8px; align-items: center; font-size: 0.65rem;
-        }
-        .table-header { background: #1c1c1f; font-weight: 900; color: var(--text-muted); }
-        .rank-row { border-bottom: 1px solid #161618; font-size: 0.75rem; }
-        .highlight { background: rgba(59, 130, 246, 0.3) !important; box-shadow: inset 3px 0 0 var(--accent); }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3950 | FrcPit Command Center</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
 
-        /* Right Side: Match Monitor */
-        .monitor { display: flex; flex-direction: column; gap: 15px; }
-        .match-block { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: center; }
-        .block-label { font-size: 0.7rem; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
-        
-        .score-display { display: flex; justify-content: space-between; align-items: center; }
-        .score-val { font-size: 5rem; font-weight: 900; line-height: 1; }
-        .teams-list { display: flex; flex-direction: column; gap: 5px; font-weight: 700; font-size: 1.2rem; }
-        
-        .next-teams { display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center; text-align: center; }
-        .team-box { padding: 15px; border-radius: 8px; font-size: 1.5rem; font-weight: 900; }
-        
-        #clock { font-size: 2.2rem; font-weight: 900; color: var(--accent); }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 0 10px 10px 10px; }
-    </style>
+    :root {
+      --bg: #06080f;
+      --panel: #101522;
+      --panel-2: #161d2e;
+      --text: #eef3ff;
+      --muted: #9ea8c0;
+      --accent: #5ca7ff;
+      --accent-2: #8b5cf6;
+      --danger: #ef4444;
+      --ok: #22c55e;
+      --line: #25304a;
+      --gold: #fbbf24;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at top right, #151d34, var(--bg) 50%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      min-height: 100vh;
+      transition: grid-template-columns 180ms ease;
+    }
+
+    .app.sidebar-open { grid-template-columns: 280px 1fr; }
+
+    .sidebar {
+      background: rgba(7, 11, 20, 0.95);
+      border-right: 1px solid var(--line);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow: hidden;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .burger {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+
+    .burger span,
+    .burger span::before,
+    .burger span::after {
+      display: block;
+      width: 18px;
+      height: 2px;
+      background: var(--text);
+      position: relative;
+      content: '';
+    }
+
+    .burger span::before { position: absolute; top: -6px; left: 0; }
+    .burger span::after { position: absolute; top: 6px; left: 0; }
+
+    .brand-text { opacity: 0; white-space: nowrap; transition: opacity 130ms ease; }
+    .app.sidebar-open .brand-text { opacity: 1; }
+
+    .nav-btn {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      text-align: left;
+      font-weight: 700;
+    }
+
+    .nav-btn .label { opacity: 0; transition: opacity 130ms ease; white-space: nowrap; }
+    .app.sidebar-open .nav-btn .label { opacity: 1; }
+
+    .nav-btn.active {
+      background: linear-gradient(90deg, rgba(92,167,255,.15), rgba(139,92,246,.15));
+      border-color: #3f6eb6;
+    }
+
+    .main {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(16, 21, 34, 0.85);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .status { font-size: .82rem; color: var(--muted); }
+
+    .clock { font-size: 1.1rem; font-weight: 800; color: var(--accent); }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 14px;
+    }
+
+    .card {
+      background: rgba(16, 21, 34, 0.9);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h3 { margin: 0 0 12px; font-size: .95rem; letter-spacing: .02em; }
+
+    .rank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .rank-col { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+
+    .row,
+    .header-row {
+      display: grid;
+      grid-template-columns: 30px 56px 30px 30px 50px 52px 52px;
+      padding: 6px 8px;
+      font-size: .74rem;
+      align-items: center;
+    }
+
+    .header-row { background: #1a2235; color: var(--muted); font-weight: 800; }
+    .row { border-top: 1px solid #1d2740; }
+    .row.me { background: rgba(92,167,255,.16); }
+
+    .match {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 8px;
+      align-items: center;
+      text-align: center;
+    }
+
+    .alliance {
+      padding: 10px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+
+    .red { background: rgba(239,68,68,.2); color: #fecaca; }
+    .blue { background: rgba(59,130,246,.2); color: #bfdbfe; }
+
+    input, select, textarea, button {
+      font: inherit;
+      color: var(--text);
+    }
+
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: .8rem;
+      color: var(--muted);
+    }
+
+    .field input, .field select, .field textarea {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 10px;
+      min-width: 120px;
+    }
+
+    .btn {
+      border: 1px solid #3f6eb6;
+      border-radius: 10px;
+      background: linear-gradient(90deg, rgba(92,167,255,.2), rgba(139,92,246,.2));
+      padding: 8px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+    .table th, .table td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; }
+    .table th { color: var(--muted); font-weight: 700; }
+
+    .pill {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: .72rem;
+      padding: 2px 8px;
+      color: var(--muted);
+    }
+
+    .stream-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #0b1020;
+    }
+
+    .stream-box iframe { width: 100%; height: 100%; border: 0; }
+
+    .muted { color: var(--muted); font-size: .85rem; }
+
+    @media (max-width: 1080px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .rank-grid { grid-template-columns: 1fr; }
+      .app { grid-template-columns: 1fr; }
+      .sidebar { flex-direction: row; overflow-x: auto; }
+      .brand-text, .nav-btn .label { opacity: 1 !important; }
+    }
+  </style>
 </head>
 <body>
-
-<div class="header">
-    <div>
-        <h1 style="margin:0; font-size: 1.2rem;">LI REGIONAL COMMAND</h1>
-        <div id="sync-status" style="font-size:0.6rem; color:var(--text-muted)">SYNCING LIVE DATA...</div>
-    </div>
-    <div id="clock">--:--:-- --</div>
-</div>
-
-<div class="main-layout">
-    <div class="rankings-container">
-        <div class="rank-column" id="col-1"></div>
-        <div class="rank-column" id="col-2"></div>
-    </div>
-
-    <div class="monitor">
-        <div class="match-block">
-            <div class="block-label">Last Completed Match</div>
-            <div id="last-match-label" style="font-weight:900; margin-bottom: 10px;">QUALIFICATION --</div>
-            <div class="score-display">
-                <div class="score-val" style="color:var(--red)" id="last-red-score">0</div>
-                <div class="teams-list">
-                    <div style="color:#fca5a5" id="last-red-teams">--- --- ---</div>
-                    <div style="color:var(--text-muted); text-align: center; font-size: 0.8rem;">VS</div>
-                    <div style="color:#93c5fd" id="last-blue-teams">--- --- ---</div>
-                </div>
-                <div class="score-val" style="color:var(--blue)" id="last-blue-score">0</div>
-            </div>
+  <div class="app sidebar-open" id="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <button class="burger" id="burger" aria-label="Toggle menu"><span></span></button>
+        <div class="brand-text">
+          <div style="font-weight:900">PIT COMMAND</div>
+          <div style="font-size:.72rem;color:var(--muted)">FRC Team 3950</div>
         </div>
+      </div>
 
-        <div class="match-block">
-            <div class="block-label">Upcoming Match</div>
-            <div id="next-match-label" style="font-weight:900; margin-bottom: 20px;">QUALIFICATION --</div>
-            <div class="next-teams">
-                <div class="team-box" style="background:rgba(239, 68, 68, 0.2); color:#fca5a5;" id="next-red">--- --- ---</div>
-                <div style="font-weight:900; color:var(--text-muted)">VS</div>
-                <div class="team-box" style="background:rgba(59, 130, 246, 0.2); color:#93c5fd;" id="next-blue">--- --- ---</div>
-            </div>
-            <div id="next-time" style="text-align: center; margin-top: 20px; font-weight: 900; color: #fbbf24;">EST START: --:--</div>
+      <button class="nav-btn active" data-view="dashboard"><span>🏁</span><span class="label">Ranking View</span></button>
+      <button class="nav-btn" data-view="pit"><span>🧰</span><span class="label">Pit View</span></button>
+      <button class="nav-btn" data-view="stream"><span>📺</span><span class="label">Live Stream</span></button>
+      <button class="nav-btn" data-view="stats"><span>📊</span><span class="label">Stat Search</span></button>
+      <button class="nav-btn" data-view="matches"><span>🗂️</span><span class="label">Past Matches</span></button>
+      <button class="nav-btn" data-view="settings"><span>⚙️</span><span class="label">Settings</span></button>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <div style="font-weight:800" id="event-name">Loading event...</div>
+          <div class="status" id="sync-status">Connecting to The Blue Alliance...</div>
         </div>
-    </div>
-</div>
+        <div class="clock" id="clock">--:--:--</div>
+      </div>
 
-<script>
-    const TEAM = '3950';
-    const EVENT = '2026nyli2';
-    const TBA_KEY = 'aarQMLYkn3tn4LX2UPkoBcMEkNnwyN4vglGipehna9VjUWdWcvnmYGSE2bAM6HdL';
+      <section class="view active" id="view-dashboard">
+        <div class="grid-2">
+          <div class="card">
+            <h3>Live Rankings</h3>
+            <div class="rank-grid">
+              <div class="rank-col" id="col-1"></div>
+              <div class="rank-col" id="col-2"></div>
+            </div>
+          </div>
 
-    async function update() {
-        try {
-            const [rRes, mRes] = await Promise.all([
-                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/rankings`, { headers: { 'X-TBA-Auth-Key': TBA_KEY } }),
-                fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/matches/simple`, { headers: { 'X-TBA-Auth-Key': TBA_KEY } })
-            ]);
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div class="card">
+              <h3>Last Completed Match</h3>
+              <div id="last-label" class="muted">Qualification --</div>
+              <div style="margin-top:10px;display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;">
+                <div class="alliance red" id="last-red">---</div>
+                <div class="pill" id="last-score">0 - 0</div>
+                <div class="alliance blue" id="last-blue">---</div>
+              </div>
+            </div>
 
-            const rData = await rRes.json();
-            const mData = await mRes.json();
+            <div class="card">
+              <h3>Upcoming Match</h3>
+              <div id="next-label" class="muted">Qualification --</div>
+              <div class="match" style="margin-top:10px;">
+                <div class="alliance red" id="next-red">---</div>
+                <div class="pill">VS</div>
+                <div class="alliance blue" id="next-blue">---</div>
+              </div>
+              <div id="next-time" style="margin-top:10px;color:var(--gold);font-weight:700;">Predicted start: --</div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-            // 1. Render Rankings
-            const half = Math.ceil(rData.rankings.length / 2);
-            renderColumn('col-1', rData.rankings.slice(0, half));
-            renderColumn('col-2', rData.rankings.slice(half));
+      <section class="view" id="view-pit">
+        <div class="card">
+          <h3>Pit Scouting Notes</h3>
+          <div class="muted" style="margin-bottom:12px;">Quick scouting form stored locally in your browser. Exportable as CSV.</div>
+          <div class="controls">
+            <label class="field">Team
+              <input id="pit-team" placeholder="e.g. 1690" />
+            </label>
+            <label class="field">Drive Type
+              <select id="pit-drive">
+                <option>Swerve</option>
+                <option>Tank</option>
+                <option>Mecanum</option>
+                <option>Other</option>
+              </select>
+            </label>
+            <label class="field">Auto Notes
+              <input id="pit-auto" placeholder="3 coral + mobility" />
+            </label>
+            <label class="field">Teleop Notes
+              <input id="pit-teleop" placeholder="Fast cycle bot" />
+            </label>
+            <label class="field" style="min-width:260px;flex:1;">General Notes
+              <textarea id="pit-notes" rows="2" placeholder="Defense ability, climb consistency, repair concerns..."></textarea>
+            </label>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="btn" id="save-pit">Save Note</button>
+            <button class="btn" id="export-pit">Export CSV</button>
+            <button class="btn" id="clear-pit">Clear All</button>
+          </div>
+          <table class="table" id="pit-table">
+            <thead><tr><th>Team</th><th>Drive</th><th>Auto</th><th>Teleop</th><th>Notes</th><th>Saved</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
 
-            // 2. Process Matches
-            const quals = mData.filter(m => m.comp_level === 'qm').sort((a,b) => a.match_number - b.match_number);
-            const lastPlayed = [...quals].reverse().find(m => m.alliances.red.score !== -1);
-            
-            if (lastPlayed) {
-                document.getElementById('last-match-label').innerText = `QUALIFICATION ${lastPlayed.match_number}`;
-                document.getElementById('last-red-score').innerText = lastPlayed.alliances.red.score;
-                document.getElementById('last-blue-score').innerText = lastPlayed.alliances.blue.score;
-                document.getElementById('last-red-teams').innerText = lastPlayed.alliances.red.team_keys.map(k=>k.substring(3)).join(' ');
-                document.getElementById('last-blue-teams').innerText = lastPlayed.alliances.blue.team_keys.map(k=>k.substring(3)).join(' ');
+      <section class="view" id="view-stream">
+        <div class="card">
+          <h3>Live Stream View</h3>
+          <div class="controls">
+            <label class="field" style="flex:1;min-width:260px;">YouTube Embed URL
+              <input id="stream-url" placeholder="https://www.youtube.com/embed/..." />
+            </label>
+            <button class="btn" id="save-stream">Load Stream</button>
+          </div>
+          <div class="stream-box"><iframe id="stream-frame" allowfullscreen></iframe></div>
+          <p class="muted" style="margin-top:10px;">Tip: paste an official FRC event stream embed URL once and it stays saved.</p>
+        </div>
+      </section>
 
-                const nextMatch = quals.find(m => m.match_number === lastPlayed.match_number + 1);
-                if (nextMatch) {
-                    document.getElementById('next-match-label').innerText = `QUALIFICATION ${nextMatch.match_number}`;
-                    document.getElementById('next-red').innerText = nextMatch.alliances.red.team_keys.map(k=>k.substring(3)).join(' ');
-                    document.getElementById('next-blue').innerText = nextMatch.alliances.blue.team_keys.map(k=>k.substring(3)).join(' ');
-                    const date = new Date(nextMatch.predicted_time * 1000);
-                    document.getElementById('next-time').innerText = `PREDICTED START: ${date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
-                }
-            }
+      <section class="view" id="view-stats">
+        <div class="card">
+          <h3>Stat Search (Statbotics-style Quick Lookup)</h3>
+          <div class="controls">
+            <label class="field">Team Number
+              <input id="team-search" placeholder="3950" />
+            </label>
+            <button class="btn" id="run-search">Search Team</button>
+          </div>
+          <div id="team-result" class="muted">Search a team in this event to view record, ranking, and next match.</div>
+        </div>
+      </section>
 
-            document.getElementById('sync-status').innerText = `LIVE SYNC: ${new Date().toLocaleTimeString()}`;
-        } catch (e) { console.error(e); }
+      <section class="view" id="view-matches">
+        <div class="card">
+          <h3>Past Matches</h3>
+          <table class="table" id="match-table">
+            <thead><tr><th>Match</th><th>Red</th><th>Blue</th><th>Score</th><th>Winner</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="view" id="view-settings">
+        <div class="card">
+          <h3>App Settings (Local)</h3>
+          <div class="muted" style="margin-bottom:12px;">Since this is personal-use, you can keep and edit API keys here. Values are stored in localStorage for this browser only.</div>
+          <div class="controls">
+            <label class="field">Team Number
+              <input id="cfg-team" placeholder="3950" />
+            </label>
+            <label class="field">Event Key
+              <input id="cfg-event" placeholder="2026nyli2" />
+            </label>
+            <label class="field" style="min-width:360px; flex:1;">Blue Alliance API Key
+              <input id="cfg-tba" />
+            </label>
+            <label class="field" style="min-width:360px; flex:1;">Nexus API Key
+              <input id="cfg-nexus" />
+            </label>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn" id="save-settings">Save + Refresh</button>
+            <button class="btn" id="reset-settings">Reset Defaults</button>
+          </div>
+          <p class="muted" id="settings-status" style="margin-top:12px;">No changes saved yet.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const DEFAULTS = {
+      team: '3950',
+      event: '2026nyli2',
+      tbaKey: 'aarQMLYkn3tn4LX2UPkoBcMEkNnwyN4vglGipehna9VjUWdWcvnmYGSE2bAM6HdL',
+      nexusKey: 'REPLACE_WITH_YOUR_NEXUS_KEY'
+    };
+    const CONFIG_KEY = 'frcpit_config_v1';
+    let config = loadConfig();
+
+    function loadConfig() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+        return { ...DEFAULTS, ...stored };
+      } catch {
+        return { ...DEFAULTS };
+      }
     }
 
-    function renderColumn(id, ranks) {
-        let html = `<div class="table-header"><span>#</span><span>TEAM</span><span>MP</span><span>RP</span><span>AVG</span><span>SCORE</span><span style="text-align:right">W-L</span></div>`;
-        ranks.forEach(r => {
-            const isUs = r.team_key === `frc${TEAM}` ? 'highlight' : '';
-            const avgRP = (r.extra_stats[0] / Math.max(1, r.matches_played)).toFixed(2);
-            const avgScore = r.sort_orders[1] ? r.sort_orders[1].toFixed(1) : '0.0';
-            html += `
-                <div class="rank-row ${isUs}">
-                    <span style="font-weight:900">${r.rank}</span>
-                    <span style="font-weight:900; color:var(--text)">${r.team_key.substring(3)}</span>
-                    <span style="color:var(--text-muted)">${r.matches_played}</span>
-                    <span>${r.extra_stats[0]}</span>
-                    <span style="color:var(--accent); font-weight:900">${avgRP}</span>
-                    <span style="color:#fbbf24">${avgScore}</span>
-                    <span style="text-align:right; font-weight:700">${r.record.wins}-${r.record.losses}</span>
-                </div>`;
-        });
-        document.getElementById(id).innerHTML = html;
+    function getHeaders() {
+      return { 'X-TBA-Auth-Key': config.tbaKey };
     }
+
+    let rankings = [];
+    let matches = [];
+
+    const app = document.getElementById('app');
+    const navButtons = Array.from(document.querySelectorAll('.nav-btn'));
+    const views = Array.from(document.querySelectorAll('.view'));
+
+    document.getElementById('burger').addEventListener('click', () => {
+      app.classList.toggle('sidebar-open');
+    });
+
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        navButtons.forEach(x => x.classList.remove('active'));
+        btn.classList.add('active');
+        const target = btn.dataset.view;
+        views.forEach(v => v.classList.toggle('active', v.id === `view-${target}`));
+      });
+    });
+
+    function fmtTeams(keys = []) {
+      return keys.map(k => k.replace('frc', '')).join(' ');
+    }
+
+    function renderRankings() {
+      const half = Math.ceil(rankings.length / 2);
+      renderRankColumn('col-1', rankings.slice(0, half));
+      renderRankColumn('col-2', rankings.slice(half));
+    }
+
+    function renderRankColumn(id, rows) {
+      let html = '<div class="header-row"><span>#</span><span>TEAM</span><span>MP</span><span>RP</span><span>AVG</span><span>SCORE</span><span>W-L-T</span></div>';
+      for (const r of rows) {
+        const isMe = r.team_key === `frc${config.team}` ? 'me' : '';
+        const rp = r.extra_stats?.[0] ?? 0;
+        const avgRp = (rp / Math.max(1, r.matches_played)).toFixed(2);
+        const avgScore = (r.sort_orders?.[1] ?? 0).toFixed(1);
+        html += `<div class="row ${isMe}">
+          <span><b>${r.rank}</b></span>
+          <span><b>${r.team_key.replace('frc','')}</b></span>
+          <span>${r.matches_played}</span>
+          <span>${rp}</span>
+          <span style="color:var(--accent)">${avgRp}</span>
+          <span style="color:var(--gold)">${avgScore}</span>
+          <span>${r.record.wins}-${r.record.losses}-${r.record.ties}</span>
+        </div>`;
+      }
+      document.getElementById(id).innerHTML = html;
+    }
+
+    function renderMatchCards() {
+      const quals = matches
+        .filter(m => m.comp_level === 'qm')
+        .sort((a, b) => a.match_number - b.match_number);
+
+      const last = [...quals].reverse().find(m => m.alliances.red.score >= 0 && m.alliances.blue.score >= 0);
+      const upcoming = quals.find(m => m.alliances.red.score === -1 || m.alliances.blue.score === -1);
+
+      if (last) {
+        document.getElementById('last-label').textContent = `Qualification ${last.match_number}`;
+        document.getElementById('last-red').textContent = fmtTeams(last.alliances.red.team_keys);
+        document.getElementById('last-blue').textContent = fmtTeams(last.alliances.blue.team_keys);
+        document.getElementById('last-score').textContent = `${last.alliances.red.score} - ${last.alliances.blue.score}`;
+      }
+
+      if (upcoming) {
+        document.getElementById('next-label').textContent = `Qualification ${upcoming.match_number}`;
+        document.getElementById('next-red').textContent = fmtTeams(upcoming.alliances.red.team_keys);
+        document.getElementById('next-blue').textContent = fmtTeams(upcoming.alliances.blue.team_keys);
+        const epoch = upcoming.predicted_time || upcoming.time;
+        document.getElementById('next-time').textContent = epoch
+          ? `Predicted start: ${new Date(epoch * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+          : 'Predicted start: TBD';
+      }
+    }
+
+    function renderPastMatches() {
+      const tbody = document.querySelector('#match-table tbody');
+      const played = matches
+        .filter(m => m.comp_level === 'qm' && m.alliances.red.score >= 0 && m.alliances.blue.score >= 0)
+        .sort((a, b) => b.match_number - a.match_number);
+
+      tbody.innerHTML = played.map(m => {
+        const winner = m.winning_alliance ? m.winning_alliance.toUpperCase() : 'TIE';
+        return `<tr>
+          <td>Q${m.match_number}</td>
+          <td>${fmtTeams(m.alliances.red.team_keys)}</td>
+          <td>${fmtTeams(m.alliances.blue.team_keys)}</td>
+          <td>${m.alliances.red.score} - ${m.alliances.blue.score}</td>
+          <td>${winner}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    async function loadEventMeta() {
+      const evt = await fetch(`https://www.thebluealliance.com/api/v3/event/${config.event}`, { headers: getHeaders() }).then(r => r.json());
+      document.getElementById('event-name').textContent = evt.name || config.event;
+    }
+
+    async function refreshData() {
+      try {
+        const [rankRes, matchRes] = await Promise.all([
+          fetch(`https://www.thebluealliance.com/api/v3/event/${config.event}/rankings`, { headers: getHeaders() }),
+          fetch(`https://www.thebluealliance.com/api/v3/event/${config.event}/matches/simple`, { headers: getHeaders() })
+        ]);
+
+        const rankData = await rankRes.json();
+        rankings = rankData.rankings || [];
+        matches = await matchRes.json();
+
+        renderRankings();
+        renderMatchCards();
+        renderPastMatches();
+        document.getElementById('sync-status').textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
+      } catch (err) {
+        console.error(err);
+        document.getElementById('sync-status').textContent = 'Sync failed. Check API key/network.';
+      }
+    }
+
+    // Pit scouting storage
+    const PIT_KEY = 'frcpit_pit_notes_v1';
+
+    function getPitRows() {
+      try { return JSON.parse(localStorage.getItem(PIT_KEY) || '[]'); }
+      catch { return []; }
+    }
+
+    function setPitRows(rows) {
+      localStorage.setItem(PIT_KEY, JSON.stringify(rows));
+      renderPitRows();
+    }
+
+    function renderPitRows() {
+      const rows = getPitRows();
+      const tbody = document.querySelector('#pit-table tbody');
+      tbody.innerHTML = rows.map(r => `<tr>
+        <td>${r.team}</td><td>${r.drive}</td><td>${r.auto}</td><td>${r.teleop}</td><td>${r.notes}</td><td>${r.saved}</td>
+      </tr>`).join('');
+    }
+
+    document.getElementById('save-pit').addEventListener('click', () => {
+      const row = {
+        team: document.getElementById('pit-team').value.trim(),
+        drive: document.getElementById('pit-drive').value,
+        auto: document.getElementById('pit-auto').value.trim(),
+        teleop: document.getElementById('pit-teleop').value.trim(),
+        notes: document.getElementById('pit-notes').value.trim(),
+        saved: new Date().toLocaleString()
+      };
+      if (!row.team) return;
+      const rows = getPitRows();
+      rows.unshift(row);
+      setPitRows(rows);
+      document.getElementById('pit-team').value = '';
+      document.getElementById('pit-auto').value = '';
+      document.getElementById('pit-teleop').value = '';
+      document.getElementById('pit-notes').value = '';
+    });
+
+    document.getElementById('clear-pit').addEventListener('click', () => {
+      if (confirm('Delete all pit notes?')) setPitRows([]);
+    });
+
+    document.getElementById('export-pit').addEventListener('click', () => {
+      const rows = getPitRows();
+      if (!rows.length) return;
+      const keys = ['team', 'drive', 'auto', 'teleop', 'notes', 'saved'];
+      const csv = [keys.join(','), ...rows.map(r => keys.map(k => `"${(r[k] || '').replaceAll('"', '""')}"`).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pit-notes-${config.event}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Stream settings
+    const STREAM_KEY = 'frcpit_stream_url';
+    const streamInput = document.getElementById('stream-url');
+    const streamFrame = document.getElementById('stream-frame');
+
+    function loadStream() {
+      const url = localStorage.getItem(STREAM_KEY) || 'https://www.youtube.com/embed/live_stream?channel=FIRSTinspires';
+      streamInput.value = url;
+      streamFrame.src = url;
+    }
+
+    document.getElementById('save-stream').addEventListener('click', () => {
+      const url = streamInput.value.trim();
+      if (!url) return;
+      localStorage.setItem(STREAM_KEY, url);
+      streamFrame.src = url;
+    });
+
+    // Team search
+    document.getElementById('run-search').addEventListener('click', async () => {
+      const raw = document.getElementById('team-search').value.trim();
+      const num = raw.replace(/\D/g, '');
+      const out = document.getElementById('team-result');
+      if (!num) return;
+      try {
+        const [status, rank] = await Promise.all([
+          fetch(`https://www.thebluealliance.com/api/v3/team/frc${num}/event/${config.event}/status`, { headers: getHeaders() }).then(r => r.json()),
+          fetch(`https://www.thebluealliance.com/api/v3/event/${config.event}/rankings`, { headers: getHeaders() }).then(r => r.json())
+        ]);
+
+        const r = (rank.rankings || []).find(x => x.team_key === `frc${num}`);
+        const next = status?.next_match_key || 'N/A';
+        const rec = r ? `${r.record.wins}-${r.record.losses}-${r.record.ties}` : 'N/A';
+        const avg = r ? (r.sort_orders?.[1] ?? 0).toFixed(1) : 'N/A';
+
+        out.innerHTML = `
+          <div class="pill">Team ${num}</div>
+          <p><b>Rank:</b> ${r?.rank ?? 'N/A'} &nbsp;&nbsp; <b>Record:</b> ${rec} &nbsp;&nbsp; <b>Avg Match Score:</b> ${avg}</p>
+          <p><b>Current status:</b> ${status?.alliance_status_str || 'N/A'}</p>
+          <p><b>Next match key:</b> ${next}</p>
+        `;
+      } catch (e) {
+        out.textContent = 'Unable to fetch team stats. Check API key or event code.';
+      }
+    });
+
+    function loadSettingsUi() {
+      document.getElementById('cfg-team').value = config.team;
+      document.getElementById('cfg-event').value = config.event;
+      document.getElementById('cfg-tba').value = config.tbaKey;
+      document.getElementById('cfg-nexus').value = config.nexusKey;
+    }
+
+    document.getElementById('save-settings').addEventListener('click', async () => {
+      config = {
+        team: document.getElementById('cfg-team').value.trim() || DEFAULTS.team,
+        event: document.getElementById('cfg-event').value.trim() || DEFAULTS.event,
+        tbaKey: document.getElementById('cfg-tba').value.trim() || DEFAULTS.tbaKey,
+        nexusKey: document.getElementById('cfg-nexus').value.trim() || DEFAULTS.nexusKey
+      };
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+      document.getElementById('settings-status').textContent = `Saved. Reloaded with team ${config.team}, event ${config.event}.`;
+      await loadEventMeta();
+      await refreshData();
+    });
+
+    document.getElementById('reset-settings').addEventListener('click', async () => {
+      config = { ...DEFAULTS };
+      localStorage.removeItem(CONFIG_KEY);
+      loadSettingsUi();
+      document.getElementById('settings-status').textContent = 'Reset to defaults.';
+      await loadEventMeta();
+      await refreshData();
+    });
 
     setInterval(() => {
-        document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', { hour12: true });
+      document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: true });
     }, 1000);
 
-    update();
-    setInterval(update, 5000);
-</script>
+    (async function init() {
+      loadSettingsUi();
+      renderPitRows();
+      loadStream();
+      await loadEventMeta();
+      await refreshData();
+      setInterval(refreshData, 10000);
+    })();
+  </script>
 </body>
 </html>
