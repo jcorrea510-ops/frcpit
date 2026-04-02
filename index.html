@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3950 | FRC Command Center</title>
+  <title>3950 | Gotham Regional Command Center</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
 
     :root {
-      --bg: #070a12;
+      --bg: #060911;
       --panel: #0f1524;
       --panel-2: #131c31;
       --line: #27324d;
@@ -19,6 +19,8 @@
       --gold: #f8c23a;
       --red: #ef4444;
       --blue: #3b82f6;
+      --green: #22c55e;
+      --warn: #f59e0b;
       --glow: 0 10px 32px rgba(0, 0, 0, 0.35);
     }
 
@@ -33,7 +35,7 @@
     }
 
     .app { display: grid; grid-template-columns: 70px 1fr; min-height: 100vh; transition: grid-template-columns .2s ease; }
-    .app.open { grid-template-columns: 260px 1fr; }
+    .app.open { grid-template-columns: 275px 1fr; }
 
     .sidebar {
       border-right: 1px solid var(--line);
@@ -103,6 +105,7 @@
       justify-content: space-between;
       align-items: center;
       box-shadow: var(--glow);
+      gap: 18px;
     }
 
     .status { font-size: .82rem; color: var(--muted); }
@@ -171,7 +174,7 @@
       color: var(--muted);
     }
 
-    .match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .match-grid, .stream-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
 
     .table { width: 100%; border-collapse: collapse; font-size: .82rem; }
     .table th, .table td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; }
@@ -191,20 +194,43 @@
 
     .stream-box iframe { width: 100%; height: 100%; border: 0; }
 
-    input {
+    input, select {
       background: var(--panel-2);
       border: 1px solid var(--line);
       border-radius: 10px;
       color: var(--text);
       padding: 9px 10px;
-      min-width: 260px;
+      min-width: 180px;
     }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(105,177,255,.06);
+    }
+
+    .kpi .value { font-size: 1.1rem; font-weight: 800; }
+
+    .badge { padding: 3px 8px; border-radius: 999px; font-size: .72rem; font-weight: 700; }
+    .ok { background: rgba(34,197,94,.2); color: #bbf7d0; }
+    .warn { background: rgba(245,158,11,.2); color: #fde68a; }
+
+    .stack { display: flex; flex-direction: column; gap: 8px; }
 
     @media (max-width: 1080px) {
       .app { grid-template-columns: 1fr; }
       .brand-copy, .label { opacity: 1 !important; }
       .sidebar { flex-direction: row; overflow-x: auto; }
-      .ranking-layout, .match-grid, .rank-grid { grid-template-columns: 1fr; }
+      .ranking-layout, .match-grid, .rank-grid, .stream-controls { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -214,20 +240,21 @@
       <div class="brand">
         <button class="burger" id="burger" aria-label="Toggle nav"><span></span></button>
         <div class="brand-copy">
-          <div style="font-weight:900">FRC COMMAND</div>
-          <div style="font-size:.74rem;color:var(--muted)">Team 3950</div>
+          <div style="font-weight:900">GOTHAM COMMAND</div>
+          <div style="font-size:.74rem;color:var(--muted)">Team 3950 · New York City</div>
         </div>
       </div>
 
       <button class="nav-btn active" data-view="rankings"><span>🏆</span><span class="label">Ranking View</span></button>
       <button class="nav-btn" data-view="matches"><span>🧩</span><span class="label">Matches</span></button>
       <button class="nav-btn" data-view="stream"><span>📺</span><span class="label">Live Stream</span></button>
+      <button class="nav-btn" data-view="scouting"><span>🕵️</span><span class="label">Scouting</span></button>
     </aside>
 
     <main class="main">
       <div class="topbar">
         <div>
-          <div style="font-weight:800" id="event-name">Loading event...</div>
+          <div style="font-weight:800" id="event-name">Loading Gotham event…</div>
           <div class="status" id="sync-status">Syncing live data…</div>
         </div>
         <div class="clock" id="clock">--:--:--</div>
@@ -244,6 +271,16 @@
           </div>
 
           <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="card">
+              <h3>Gotham Event Setup</h3>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                <input id="event-key" value="2025nyny" placeholder="Event key, ex: 2025nyny" />
+                <input id="tba-key" placeholder="TBA API key (optional, saved locally)" />
+                <button class="btn" id="apply-event">Apply</button>
+              </div>
+              <div class="muted" style="margin-top:8px;">Default is New York City Regional style key. If data fails, paste your own TBA key.</div>
+            </div>
+
             <div class="card">
               <h3>Last Completed Match</h3>
               <div class="muted" id="last-label">Qualification --</div>
@@ -299,12 +336,63 @@
 
       <section class="view" id="view-stream">
         <div class="card">
-          <h3>Live Stream</h3>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-            <input id="stream-url" placeholder="https://www.youtube.com/embed/..." />
-            <button class="btn" id="load-stream">Load Stream</button>
+          <h3>YouTube Live Stream (Fixed Embed)</h3>
+          <div class="stream-controls">
+            <div class="stack">
+              <label for="stream-url" class="muted">Paste full YouTube URL, channel URL, live URL, embed URL, or just video ID.</label>
+              <input id="stream-url" placeholder="https://www.youtube.com/watch?v=..." />
+            </div>
+            <div class="stack">
+              <label for="stream-title" class="muted">Title in player for refs/debugging.</label>
+              <input id="stream-title" placeholder="Gotham Regional Live Stream" value="Gotham Regional Live Stream" />
+            </div>
           </div>
-          <div class="stream-box"><iframe id="stream-frame" allowfullscreen></iframe></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+            <button class="btn" id="load-stream">Load Stream</button>
+            <button class="btn" id="load-default-stream">Use FIRST Official Channel</button>
+            <span class="badge warn">If YouTube blocks a specific stream, open that stream directly on YouTube and copy its exact video URL.</span>
+          </div>
+          <div class="stream-box">
+            <iframe id="stream-frame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen title="FRC stream"></iframe>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-scouting">
+        <div class="card">
+          <h3>Scouting: Team History, EPA, and Prior Regionals</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+            <input id="scout-team" type="number" min="1" placeholder="Team number" value="3950" />
+            <select id="scout-years">
+              <option value="2">Last 2 seasons</option>
+              <option value="3" selected>Last 3 seasons</option>
+              <option value="4">Last 4 seasons</option>
+            </select>
+            <button class="btn" id="run-scouting">Run Scouting Report</button>
+          </div>
+          <div id="scout-status" class="muted">Ready. Pulling from TBA + Statbotics when available.</div>
+        </div>
+
+        <div class="kpi-grid" id="scout-kpis"></div>
+
+        <div class="card" style="margin-top:10px;">
+          <h3>Old Regionals (with location + finish)</h3>
+          <table class="table" id="regionals-table">
+            <thead>
+              <tr><th>Season</th><th>Regional</th><th>Location</th><th>Rank</th><th>Record</th><th>EPA</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="card" style="margin-top:10px;">
+          <h3>Recent Matches Across Those Events</h3>
+          <table class="table" id="scout-matches-table">
+            <thead>
+              <tr><th>Event</th><th>Match</th><th>Alliance</th><th>Result</th><th>Score</th><th>Partners</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
       </section>
     </main>
@@ -312,9 +400,13 @@
 
   <script>
     const TEAM = '3950';
-    const EVENT = '2026nyli2';
-    const TBA_KEY = 'aarQMLYkn3tn4LX2UPkoBcMEkNnwyN4vglGipehna9VjUWdWcvnmYGSE2bAM6HdL';
-    const NEXUS_KEY = 'REPLACE_WITH_YOUR_NEXUS_KEY';
+    const DEFAULT_EVENT = '2025nyny';
+    const STORAGE = {
+      event: 'frcpit_event_key',
+      tba: 'frcpit_tba_key',
+      stream: 'frcpit_stream_url',
+      streamTitle: 'frcpit_stream_title'
+    };
 
     const app = document.getElementById('app');
     const navButtons = Array.from(document.querySelectorAll('.nav-btn'));
@@ -322,9 +414,24 @@
 
     let rankings = [];
     let matches = [];
+    let currentEvent = localStorage.getItem(STORAGE.event) || DEFAULT_EVENT;
+    let tbaKey = localStorage.getItem(STORAGE.tba) || '';
+
+    document.getElementById('event-key').value = currentEvent;
+    document.getElementById('tba-key').value = tbaKey;
 
     function headers() {
-      return { 'X-TBA-Auth-Key': TBA_KEY };
+      return tbaKey ? { 'X-TBA-Auth-Key': tbaKey } : {};
+    }
+
+    function tbaFetch(path) {
+      return fetch(`https://www.thebluealliance.com/api/v3${path}`, { headers: headers() }).then(async res => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`TBA ${res.status}: ${text || 'request failed'}`);
+        }
+        return res.json();
+      });
     }
 
     document.getElementById('burger').addEventListener('click', () => app.classList.toggle('open'));
@@ -338,16 +445,29 @@
       });
     });
 
+    document.getElementById('apply-event').addEventListener('click', async () => {
+      currentEvent = document.getElementById('event-key').value.trim() || DEFAULT_EVENT;
+      tbaKey = document.getElementById('tba-key').value.trim();
+      localStorage.setItem(STORAGE.event, currentEvent);
+      localStorage.setItem(STORAGE.tba, tbaKey);
+      await loadEventMeta();
+      await refreshData();
+    });
+
     function toNums(teamKeys = []) {
       return teamKeys.map(k => k.replace('frc', ''));
     }
 
-    function includesTeam(match) {
+    function includesTeam(match, teamNum = TEAM) {
       const all = [...toNums(match.alliances.red.team_keys), ...toNums(match.alliances.blue.team_keys)];
-      return all.includes(TEAM);
+      return all.includes(String(teamNum));
     }
 
     function renderRankColumn(id, rows) {
+      if (!rows.length) {
+        document.getElementById(id).innerHTML = '<div class="muted" style="padding:12px">No ranking data yet.</div>';
+        return;
+      }
       let html = '<div class="head-row"><span>#</span><span>TEAM</span><span>MP</span><span>RP</span><span>AVG RP</span><span>SCORE</span><span>W-L-T</span></div>';
       rows.forEach(r => {
         const me = r.team_key === `frc${TEAM}` ? 'me' : '';
@@ -426,18 +546,23 @@
     }
 
     async function loadEventMeta() {
-      const event = await fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}`, { headers: headers() }).then(r => r.json());
-      document.getElementById('event-name').textContent = event.name || EVENT;
+      try {
+        const event = await tbaFetch(`/event/${currentEvent}`);
+        const city = [event.city, event.state_prov].filter(Boolean).join(', ');
+        document.getElementById('event-name').textContent = `${event.name || currentEvent}${city ? ` · ${city}` : ''}`;
+      } catch (err) {
+        document.getElementById('event-name').textContent = `Gotham Regional Dashboard · ${currentEvent}`;
+      }
     }
 
     async function refreshData() {
       try {
-        const [rankRes, matchRes] = await Promise.all([
-          fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/rankings`, { headers: headers() }),
-          fetch(`https://www.thebluealliance.com/api/v3/event/${EVENT}/matches/simple`, { headers: headers() })
+        const [rankData, matchData] = await Promise.all([
+          tbaFetch(`/event/${currentEvent}/rankings`),
+          tbaFetch(`/event/${currentEvent}/matches/simple`)
         ]);
-        rankings = (await rankRes.json()).rankings || [];
-        matches = await matchRes.json();
+        rankings = rankData.rankings || [];
+        matches = matchData || [];
 
         renderRankings();
         renderMatchCards();
@@ -445,26 +570,201 @@
         document.getElementById('sync-status').textContent = `Live sync: ${new Date().toLocaleTimeString()}`;
       } catch (err) {
         console.error(err);
-        document.getElementById('sync-status').textContent = 'Sync failed. Check event/API key.';
+        document.getElementById('sync-status').textContent = 'Sync failed. Add valid TBA key and Gotham event key in setup card.';
       }
     }
 
-    const STREAM_KEY = 'frcpit_stream_url';
+    function toYouTubeEmbed(input) {
+      const raw = input.trim();
+      if (!raw) return '';
+      const origin = encodeURIComponent(window.location.origin);
+
+      if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) {
+        return `https://www.youtube-nocookie.com/embed/${raw}?autoplay=1&rel=0&modestbranding=1&origin=${origin}`;
+      }
+
+      try {
+        const url = new URL(raw);
+        if (url.hostname.includes('youtu.be')) {
+          const id = url.pathname.replace('/', '');
+          return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&origin=${origin}`;
+        }
+
+        if (url.pathname.includes('/watch')) {
+          const v = url.searchParams.get('v');
+          if (v) return `https://www.youtube-nocookie.com/embed/${v}?autoplay=1&rel=0&modestbranding=1&origin=${origin}`;
+        }
+
+        if (url.pathname.includes('/embed/')) {
+          const id = url.pathname.split('/embed/')[1]?.split('/')[0];
+          if (id) return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&origin=${origin}`;
+        }
+
+        if (url.pathname.includes('/live/')) {
+          const id = url.pathname.split('/live/')[1]?.split('/')[0];
+          if (id) return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&origin=${origin}`;
+        }
+
+        if (url.pathname.startsWith('/@') || url.pathname.startsWith('/c/') || url.pathname.startsWith('/channel/')) {
+          return `https://www.youtube.com/embed/live_stream?channel=FIRSTinspires&autoplay=1&origin=${origin}`;
+        }
+
+        return raw;
+      } catch {
+        return raw;
+      }
+    }
+
     const streamInput = document.getElementById('stream-url');
     const streamFrame = document.getElementById('stream-frame');
+    const streamTitle = document.getElementById('stream-title');
 
     function loadStream() {
-      const saved = localStorage.getItem(STREAM_KEY) || 'https://www.youtube.com/embed/live_stream?channel=FIRSTinspires';
+      const saved = localStorage.getItem(STORAGE.stream) || 'https://www.youtube.com/live/firstinspires';
+      const savedTitle = localStorage.getItem(STORAGE.streamTitle) || 'Gotham Regional Live Stream';
       streamInput.value = saved;
-      streamFrame.src = saved;
+      streamTitle.value = savedTitle;
+      streamFrame.title = savedTitle;
+      streamFrame.src = toYouTubeEmbed(saved);
+    }
+
+    function applyStream(url) {
+      const embed = toYouTubeEmbed(url);
+      streamFrame.src = embed;
+      streamFrame.title = streamTitle.value || 'FRC stream';
+      localStorage.setItem(STORAGE.stream, url);
+      localStorage.setItem(STORAGE.streamTitle, streamFrame.title);
     }
 
     document.getElementById('load-stream').addEventListener('click', () => {
       const val = streamInput.value.trim();
       if (!val) return;
-      localStorage.setItem(STREAM_KEY, val);
-      streamFrame.src = val;
+      applyStream(val);
     });
+
+    document.getElementById('load-default-stream').addEventListener('click', () => {
+      const fallback = 'https://www.youtube.com/live/firstinspires';
+      streamInput.value = fallback;
+      applyStream(fallback);
+    });
+
+    async function fetchEPA(team, year) {
+      try {
+        const data = await fetch(`https://api.statbotics.io/v3/team_year/${team}/${year}`).then(r => r.ok ? r.json() : null);
+        return data?.epa?.end ?? data?.epa?.total_points ?? null;
+      } catch {
+        return null;
+      }
+    }
+
+    function formatMatchLabel(match) {
+      const names = { qm: 'Q', qf: 'QF', sf: 'SF', f: 'F' };
+      return `${names[match.comp_level] || match.comp_level.toUpperCase()}${match.match_number}`;
+    }
+
+    async function runScouting() {
+      const status = document.getElementById('scout-status');
+      const team = Number(document.getElementById('scout-team').value || TEAM);
+      const seasons = Number(document.getElementById('scout-years').value || 3);
+      const currentYear = new Date().getFullYear();
+      const years = Array.from({ length: seasons }, (_, i) => currentYear - i);
+      const regionalsRows = [];
+      const matchRows = [];
+      let totalWins = 0;
+      let totalLosses = 0;
+      let totalEvents = 0;
+      let epaValues = [];
+
+      status.textContent = `Loading scouting report for Team ${team}...`;
+
+      for (const year of years) {
+        try {
+          const events = await tbaFetch(`/team/frc${team}/events/${year}/simple`);
+          const regionals = events.filter(e => (e.event_type_string || '').toLowerCase().includes('regional'));
+
+          for (const event of regionals) {
+            totalEvents += 1;
+            const [statusData, eventMatches, epa] = await Promise.all([
+              tbaFetch(`/team/frc${team}/event/${event.key}/status`).catch(() => null),
+              tbaFetch(`/team/frc${team}/event/${event.key}/matches/simple`).catch(() => []),
+              fetchEPA(team, year)
+            ]);
+
+            if (epa !== null) epaValues.push(epa);
+
+            const qual = statusData?.qual?.ranking;
+            const record = qual?.record ? `${qual.record.wins}-${qual.record.losses}-${qual.record.ties}` : '--';
+            totalWins += qual?.record?.wins || 0;
+            totalLosses += qual?.record?.losses || 0;
+
+            regionalsRows.push({
+              year,
+              event: event.name,
+              location: [event.city, event.state_prov].filter(Boolean).join(', ') || '--',
+              rank: qual?.rank || '--',
+              record,
+              epa: epa !== null ? epa.toFixed(1) : '--'
+            });
+
+            eventMatches
+              .sort((a, b) => (a.time || 0) - (b.time || 0))
+              .slice(-6)
+              .forEach(m => {
+                const isRed = m.alliances.red.team_keys.includes(`frc${team}`);
+                const mine = isRed ? m.alliances.red : m.alliances.blue;
+                const opp = isRed ? m.alliances.blue : m.alliances.red;
+                const win = mine.score > opp.score;
+                const tie = mine.score === opp.score;
+                matchRows.push({
+                  event: event.name,
+                  match: formatMatchLabel(m),
+                  alliance: isRed ? 'Red' : 'Blue',
+                  result: tie ? 'Tie' : (win ? 'Win' : 'Loss'),
+                  score: `${mine.score} - ${opp.score}`,
+                  partners: toNums(mine.team_keys.filter(k => k !== `frc${team}`)).join(' ')
+                });
+              });
+          }
+        } catch (err) {
+          console.error(`scouting year ${year} failed`, err);
+        }
+      }
+
+      const avgEPA = epaValues.length ? (epaValues.reduce((a, b) => a + b, 0) / epaValues.length).toFixed(1) : '--';
+
+      document.getElementById('scout-kpis').innerHTML = `
+        <div class="kpi"><div class="muted">Team</div><div class="value">${team}</div></div>
+        <div class="kpi"><div class="muted">Regional Events</div><div class="value">${totalEvents}</div></div>
+        <div class="kpi"><div class="muted">W-L</div><div class="value">${totalWins}-${totalLosses}</div></div>
+        <div class="kpi"><div class="muted">Avg EPA</div><div class="value">${avgEPA}</div></div>
+      `;
+
+      document.querySelector('#regionals-table tbody').innerHTML = regionalsRows.length
+        ? regionalsRows.map(r => `<tr>
+            <td>${r.year}</td>
+            <td>${r.event}</td>
+            <td>${r.location}</td>
+            <td>${r.rank}</td>
+            <td>${r.record}</td>
+            <td>${r.epa}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="6">No regional history found (or API key/data issue).</td></tr>';
+
+      document.querySelector('#scout-matches-table tbody').innerHTML = matchRows.length
+        ? matchRows.slice(-30).reverse().map(m => `<tr>
+            <td>${m.event}</td>
+            <td>${m.match}</td>
+            <td>${m.alliance}</td>
+            <td>${m.result}</td>
+            <td>${m.score}</td>
+            <td>${m.partners || '--'}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="6">No match history available.</td></tr>';
+
+      status.textContent = `Scouting complete for Team ${team}. Regionals include event locations so you can compare performance by venue.`;
+    }
+
+    document.getElementById('run-scouting').addEventListener('click', runScouting);
 
     setInterval(() => {
       document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: true });
@@ -475,6 +775,7 @@
       await loadEventMeta();
       await refreshData();
       setInterval(refreshData, 10000);
+      runScouting();
     })();
   </script>
 </body>
